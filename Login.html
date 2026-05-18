@@ -1,0 +1,87 @@
+<div id="loginSection" class="container py-5">
+  <div class="row justify-content-center align-items-center" style="min-height: 90vh;">
+    <div class="col-lg-5 col-md-7">
+      <div class="panel-card bg-white">
+        <div class="card-body p-5">
+          <div class="text-center mb-4">
+            <div class="soft-badge mb-3">
+              Sistema SCM Piura
+            </div>
+            <h1 class="h3 fw-bold mb-2">Ingreso al sistema</h1>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted small fw-bold">Usuario</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-0"><i class="fas fa-user text-muted"></i></span>
+              <input type="text" id="user" class="form-control border-0 bg-light" placeholder="Ingrese su usuario" autocomplete="username">
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label text-muted small fw-bold">Clave</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-0"><i class="fas fa-lock text-muted"></i></span>
+              <input type="password" id="pass" class="form-control border-0 bg-light" placeholder="Ingrese su clave" autocomplete="current-password">
+            </div>
+          </div>
+
+          <button id="btnLogin" class="btn btn-primary w-100 py-2 fw-bold" onclick="iniciarSesion()">
+            Ingresar
+          </button>
+
+          <div id="loginError" class="alert alert-danger mt-3 py-2 small text-center d-none mb-0"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function iniciarSesion() {
+    const user = document.getElementById('user').value.trim();
+    const pass = document.getElementById('pass').value.trim();
+    const btn = document.getElementById('btnLogin');
+    const errorDiv = document.getElementById('loginError');
+
+    if (!user || !pass) {
+      errorDiv.innerText = 'Complete usuario y clave.';
+      errorDiv.classList.remove('d-none');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Validando...';
+    errorDiv.classList.add('d-none');
+
+    google.script.run
+      .withSuccessHandler(function(response) {
+        if (response.success) {
+          inicializarApp(response);
+          return;
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = 'Ingresar';
+        errorDiv.innerText = response.mensaje;
+        errorDiv.classList.remove('d-none');
+      })
+      .withFailureHandler(function(error) {
+        btn.disabled = false;
+        btn.innerHTML = 'Ingresar';
+        errorDiv.innerText = error.message || 'No fue posible validar el acceso.';
+        errorDiv.classList.remove('d-none');
+      })
+      .validarLogin(user, pass);
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    ['user', 'pass'].forEach(function(id) {
+      document.getElementById(id).addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+          iniciarSesion();
+        }
+      });
+    });
+  });
+</script>

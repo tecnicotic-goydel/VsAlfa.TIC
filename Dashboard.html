@@ -1,0 +1,2767 @@
+﻿<div class="container py-4">
+  <div class="app-header mb-3">
+    <div class="row align-items-center g-2 mb-3">
+      <div class="col-lg-8">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+          <div class="soft-badge">
+            SCM Piura
+          </div>
+          <div class="fw-bold text-dark">Panel operativo</div>
+        </div>
+        <div class="text-muted small">Trazabilidad visible para cargas y lecturas del período.</div>
+      </div>
+      <div class="col-lg-4">
+        <div class="d-flex flex-wrap justify-content-lg-end align-items-center gap-2">
+          <div class="text-lg-end">
+            <div class="text-muted small">Usuario conectado</div>
+            <div class="fw-bold" id="userNameDisplay">-</div>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm" onclick="cerrarSesion()">
+            <i class="fas fa-right-from-bracket me-1"></i> Salir
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="module-tabs">
+      <button class="module-tab active" onclick="cambiarModulo('modulo-resumen', this)">Panel de Control</button>
+      <button class="module-tab" onclick="cambiarModulo('modulo-carga', this)">Cargar padrón</button>
+      <button class="module-tab" onclick="cambiarModulo('modulo-lecturas', this)">Procesar lecturas</button>
+      <button class="module-tab" onclick="cambiarModulo('modulo-manual', this)">Ingreso de carga manual</button>
+    </div>
+  </div>
+
+  <div id="modulo-resumen" class="module-view active">
+    <div class="filter-panel mb-4">
+      <div class="p-4">
+        <div class="row g-3 align-items-end">
+          <div class="col-lg-3">
+            <label class="form-label text-muted small fw-bold">Mes del padrón</label>
+            <select id="filtroPeriodoResumen" class="form-select" onchange="actualizarResumen(true)"></select>
+          </div>
+          <div class="col-lg-6">
+            <label class="form-label text-muted small fw-bold">Buscar suministro</label>
+            <input type="text" id="buscadorSuministro" class="form-control" placeholder="Ingrese el suministro">
+          </div>
+          <div class="col-lg-3">
+            <div class="d-grid gap-2">
+              <button class="btn btn-primary" onclick="buscarSuministroResumen()">Buscar suministro</button>
+              <button class="btn btn-outline-secondary btn-sm" onclick="limpiarBusquedaSuministro()">Limpiar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+      <div>
+        <div class="section-title mb-1">Período activo del padrón</div>
+        <div class="text-muted small">Las métricas y la búsqueda trabajan con el mes seleccionado.</div>
+      </div>
+      <div class="soft-badge" id="periodoActivoDisplay">
+        <i class="fas fa-calendar"></i>
+        Sin datos
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="stat-card h-100 p-3">
+          <div class="stat-label mb-2">Total del período</div>
+          <div class="display-6 fw-bold" id="card-total">0</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card h-100 p-3">
+          <div class="stat-label mb-2">Pendientes</div>
+          <div class="display-6 fw-bold text-warning" id="card-pendientes">0</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card h-100 p-3">
+          <div class="stat-label mb-2">Leídos sin Parámetros</div>
+          <div class="display-6 fw-bold text-secondary" id="card-leidos-sin-carga">0</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card h-100 p-3">
+          <div class="stat-label mb-2">Realizados</div>
+          <div class="display-6 fw-bold text-success" id="card-completos">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4" id="panelResumenGrid">
+      <div class="col-xl-7" id="panelResumenListadoCol">
+        <div class="panel-card bg-white h-100" id="panelResumenListadoCard">
+          <div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+              <div>
+                <h3 class="section-title mb-1">Listado del padrón</h3>
+                <div class="text-muted small" id="listadoSuministrosMeta">Cargando listado del padrón.</div>
+              </div>
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <button id="btnExportarPadronExcel" class="btn btn-outline-success btn-sm" onclick="exportarPadronExcel()">
+                  <i class="fas fa-file-arrow-down me-1"></i> Exportar Excel
+                </button>
+                <button id="btnPantallaCompletaPadron" class="btn btn-outline-primary btn-sm" onclick="alternarPantallaCompletaListado()">
+                  <i class="fas fa-expand me-1"></i> Pantalla completa
+                </button>
+              </div>
+            </div>
+            <div class="d-flex flex-column gap-3 mb-3">
+              <div class="list-filter-group" id="estadoResumenFiltros"></div>
+              <div class="list-advanced-filters">
+                <div class="filter-field">
+                  <label class="form-label text-muted small fw-bold mb-1" for="filtroOrigenResumen">Origen</label>
+                  <select id="filtroOrigenResumen" class="form-select form-select-sm" onchange="actualizarFiltrosSecundariosResumen()">
+                    <option value="TODOS">Todos</option>
+                  </select>
+                </div>
+                <div class="filter-field">
+                  <label class="form-label text-muted small fw-bold mb-1" for="filtroCargaResumen">Carga</label>
+                  <select id="filtroCargaResumen" class="form-select form-select-sm" onchange="actualizarFiltrosSecundariosResumen()">
+                    <option value="TODAS">Todas</option>
+                  </select>
+                </div>
+                <div class="filter-field">
+                  <label class="form-label text-muted small fw-bold mb-1" for="filtroCarteraResumen">Cartera</label>
+                  <select id="filtroCarteraResumen" class="form-select form-select-sm" onchange="actualizarFiltrosSecundariosResumen()">
+                    <option value="TODAS">Todas</option>
+                  </select>
+                </div>
+                <div class="filter-field">
+                  <label class="form-label text-muted small fw-bold mb-1" for="filtroTarifaResumen">Tarifa</label>
+                  <select id="filtroTarifaResumen" class="form-select form-select-sm" onchange="actualizarFiltrosSecundariosResumen()">
+                    <option value="TODAS">Todas</option>
+                  </select>
+                </div>
+                <div class="filter-field">
+                  <label class="form-label text-muted small fw-bold mb-1" for="btnLimpiarFiltrosResumen">Acción</label>
+                  <button id="btnLimpiarFiltrosResumen" class="btn btn-outline-secondary btn-sm w-100" onclick="limpiarFiltrosListadoResumen()">Limpiar filtros</button>
+                </div>
+              </div>
+            </div>
+            <div id="listadoSuministrosContainer" class="text-muted small">Sin resultados aún.</div>
+            <div id="padronExportAlert" class="alert mt-3 d-none mb-0" role="alert"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-5" id="panelResumenDetalleCol">
+        <div class="panel-card bg-white h-100">
+          <div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+              <div>
+                <h3 class="section-title mb-1">Detalle del suministro</h3>
+                <div class="text-muted small" id="detalleSuministroMeta">Seleccione un suministro del listado o use el buscador.</div>
+              </div>
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <div id="detalleSuministroOrigen" class="soft-badge d-none">
+                  <i class="fas fa-tower-cell"></i>
+                  <span>-</span>
+                </div>
+                <div id="detalleSuministroNumero" class="soft-badge d-none">
+                  <i class="fas fa-bolt"></i>
+                  <span>-</span>
+                </div>
+              </div>
+            </div>
+            <div id="detalleCrudGlobalAlert" class="alert d-none mb-3" role="alert"></div>
+            <div id="detalleSuministroContainer" class="text-muted small detail-scroll-panel">Sin resultados aún.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modulo-carga" class="module-view">
+    <div class="row g-4">
+      <div class="col-lg-5">
+        <div class="panel-card bg-white h-100">
+          <div class="card-body p-4">
+            <h3 class="section-title mb-2">
+              <i class="fas fa-file-excel text-success me-2"></i>Cargar padrón ENOSA
+            </h3>
+            <p class="text-muted small mb-4">Seleccione el mes, suba el archivo y el sistema validará que los suministros no se repitan en ese período. Si la carpeta no existe, se creará automáticamente.</p>
+
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">Mes a cargar</label>
+              <select id="periodoCargaPadron" class="form-select"></select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">Archivo Excel</label>
+              <input type="file" id="archivoPadron" class="form-control" accept=".xlsx,.xls">
+            </div>
+
+            <div class="d-grid gap-2">
+              <button id="btnSubirPadron" class="btn btn-primary w-100 fw-bold py-2" onclick="subirArchivosPadron()">
+                <i class="fas fa-upload me-2"></i>Actualizar padrón
+              </button>
+
+              <button id="btnBorrarPadron" class="btn btn-danger w-100 fw-bold py-2" onclick="borrarCargaPadron()">
+                <i class="fas fa-trash-can me-2"></i>Borrar carga de padrón
+              </button>
+            </div>
+
+            <div class="small text-danger mt-2">El borrado elimina todos los registros del mes seleccionado y solicita doble confirmación con clave.</div>
+
+            <div id="uploadAlert" class="alert mt-3 d-none mb-0" role="alert"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="log-panel h-100">
+          <div class="p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h3 class="section-title mb-0">Log de carga</h3>
+              <span class="text-muted small">Últimas operaciones</span>
+            </div>
+            <div id="uploadLogContainer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modulo-manual" class="module-view">
+    <div class="row g-4 mb-4">
+      <div class="col-lg-4">
+        <div class="panel-card bg-white h-100">
+          <div class="card-body p-4">
+            <h3 class="section-title mb-2">
+              <i class="fas fa-pen-to-square text-primary me-2"></i>Ingreso de carga manual
+            </h3>
+            <p class="text-muted small mb-4">Busque suministros pendientes, registre la carga manual de uno en uno o descargue una plantilla para cargar varios en bloque.</p>
+
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">Mes del padrón</label>
+              <select id="filtroPeriodoManual" class="form-select" onchange="actualizarModuloManual(true)"></select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">Buscar suministro pendiente</label>
+              <input type="text" id="buscadorManualSuministro" class="form-control" placeholder="Ingrese el suministro">
+            </div>
+
+            <div class="d-grid gap-2">
+              <button class="btn btn-primary" onclick="buscarPendientesManual()">Buscar pendiente</button>
+              <button class="btn btn-outline-secondary btn-sm" onclick="limpiarBusquedaManual()">Limpiar</button>
+              <button id="btnDescargarPlantillaManual" class="btn btn-outline-success btn-sm" onclick="descargarPlantillaCargaManual()">
+                <i class="fas fa-file-arrow-down me-1"></i> Descargar plantilla
+              </button>
+            </div>
+
+            <div id="manualAlert" class="alert mt-3 d-none mb-0" role="alert"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-8">
+        <div class="panel-card bg-white h-100">
+          <div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+              <div>
+                <h3 class="section-title mb-2">
+                  <i class="fas fa-file-excel text-success me-2"></i>Carga masiva por plantilla
+                </h3>
+                <p class="text-muted small mb-0">Descargue la plantilla del filtro actual, complete las lecturas y vuelva a subir el archivo para registrar varios suministros pendientes.</p>
+              </div>
+              <div class="soft-badge" id="manualPendientesBadge">
+                <i class="fas fa-list-check"></i>
+                0 pendientes
+              </div>
+            </div>
+
+            <div class="row g-3 align-items-end">
+              <div class="col-md-8">
+                <label class="form-label text-muted small fw-bold">Archivo Excel de carga manual</label>
+                <input type="file" id="archivoCargaManualMasiva" class="form-control" accept=".xlsx,.xls">
+              </div>
+              <div class="col-md-4">
+                <div class="d-grid">
+                  <button id="btnSubirPlantillaManual" class="btn btn-primary" onclick="subirPlantillaCargaManual()">
+                    <i class="fas fa-upload me-2"></i>Subir plantilla
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div id="manualBulkAlert" class="alert mt-3 d-none mb-0" role="alert"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-xl-7">
+        <div class="panel-card bg-white h-100">
+          <div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+              <div>
+                <h3 class="section-title mb-1">Pendientes del período</h3>
+                <div class="text-muted small" id="manualPendientesMeta">Cargando suministros pendientes.</div>
+              </div>
+            </div>
+            <div id="manualPendientesContainer" class="text-muted small">Sin resultados aun.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-5">
+        <div class="panel-card bg-white h-100">
+          <div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+              <div>
+                <h3 class="section-title mb-1">Registrar carga</h3>
+                <div class="text-muted small" id="manualDetalleMeta">Seleccione un suministro pendiente del listado.</div>
+              </div>
+            </div>
+            <div id="manualFormularioContainer" class="text-muted small">Sin resultados aun.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4 mt-1">
+      <div class="col-12">
+        <div class="log-panel h-100">
+          <div class="p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h3 class="section-title mb-0">Log de carga manual</h3>
+              <span class="text-muted small">Últimas operaciones</span>
+            </div>
+            <div id="manualLogContainer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modulo-lecturas" class="module-view">
+    <div class="row g-4">
+      <div class="col-lg-5">
+        <div class="panel-card bg-white h-100">
+          <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+              <div>
+                <h3 class="section-title mb-2">
+                  <i class="fas fa-gears text-primary me-2"></i>Procesar lecturas
+                </h3>
+                <p class="text-muted small mb-0">Cada cuadrilla tiene su boton propio y existe una opcion adicional para ejecutar todas las carpetas.</p>
+              </div>
+              <button id="btnProcesarTodas" class="btn btn-primary btn-sm" onclick="ejecutarMotorLecturas()">
+                Procesar todas
+              </button>
+            </div>
+
+            <div class="quadrilla-grid mb-3" id="quadrillasContainer"></div>
+            <div id="consolaMotor" class="alert mt-3 d-none mb-0"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="log-panel h-100">
+          <div class="p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h3 class="section-title mb-0">Log de procesamiento</h3>
+              <span class="text-muted small">Detalle por cuadrilla</span>
+            </div>
+            <div id="processLogContainer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const LIMITE_LISTADO_PADRON = 100;
+
+  const estadoUI = {
+    historialCarga: [],
+    historialProceso: [],
+    historialManual: [],
+    cuadrillas: [],
+    usuarioActual: null,
+    periodos: [],
+    suministrosResumen: [],
+    pendientesManual: [],
+    listadoResumenActual: [],
+    listadoManualActual: [],
+    detalleResumenActualKey: '',
+    detalleResumenEditando: false,
+    alertaDetallePendiente: null,
+    detalleManualActualKey: '',
+    filtroEstadoResumen: 'TODOS',
+    filtroOrigenResumen: 'TODOS',
+    filtroCargaResumen: 'TODAS',
+    filtroCarteraResumen: 'TODAS',
+    filtroTarifaResumen: 'TODAS',
+    listadoPadronExpandido: false,
+    resumenMetricas: {
+      total: 0,
+      pendientes: 0,
+      leidosSinCarga: 0,
+      realizados: 0,
+      realizadosExactos: 0,
+      cortados: 0,
+      retirados: 0
+    }
+  };
+
+  function inicializarApp(usuario) {
+    estadoUI.usuarioActual = usuario || null;
+    document.getElementById('loginSection').classList.add('d-none');
+    document.getElementById('mainApp').classList.remove('d-none');
+    document.getElementById('btnLogin').disabled = false;
+    document.getElementById('btnLogin').innerHTML = 'Ingresar';
+    document.getElementById('userNameDisplay').innerText = usuario.nombre || usuario.usuario || 'Usuario';
+    document.getElementById('loginError').classList.add('d-none');
+    document.getElementById('buscadorSuministro').onkeydown = function(event) {
+      if (event.key === 'Enter') {
+        buscarSuministroResumen();
+      }
+    };
+    document.getElementById('buscadorManualSuministro').onkeydown = function(event) {
+      if (event.key === 'Enter') {
+        buscarPendientesManual();
+      }
+    };
+    aplicarModoPantallaCompletaListado(false);
+    cargarOpcionesPeriodoCarga();
+    renderUploadLog();
+    renderProcessLog();
+    renderManualLog();
+    cargarCuadrillas();
+    actualizarResumen();
+    actualizarModuloManual();
+  }
+
+  function cambiarModulo(idModulo, elemento) {
+    document.querySelectorAll('.module-view').forEach(function(view) {
+      view.classList.remove('active');
+    });
+    document.querySelectorAll('.module-tab').forEach(function(tab) {
+      tab.classList.remove('active');
+    });
+
+    document.getElementById(idModulo).classList.add('active');
+    elemento.classList.add('active');
+  }
+
+  function cerrarSesion() {
+    document.getElementById('mainApp').classList.add('d-none');
+    document.getElementById('loginSection').classList.remove('d-none');
+    document.getElementById('userNameDisplay').innerText = '-';
+    document.getElementById('user').value = '';
+    document.getElementById('pass').value = '';
+    document.getElementById('archivoPadron').value = '';
+    document.getElementById('periodoCargaPadron').selectedIndex = 0;
+    document.getElementById('periodoActivoDisplay').innerHTML = '<i class="fas fa-calendar"></i> Sin datos';
+    document.getElementById('uploadAlert').classList.add('d-none');
+    document.getElementById('manualAlert').classList.add('d-none');
+    document.getElementById('manualBulkAlert').classList.add('d-none');
+    document.getElementById('consolaMotor').classList.add('d-none');
+    estadoUI.historialCarga = [];
+    estadoUI.historialProceso = [];
+    estadoUI.historialManual = [];
+    estadoUI.cuadrillas = [];
+    estadoUI.usuarioActual = null;
+    estadoUI.periodos = [];
+    estadoUI.suministrosResumen = [];
+    estadoUI.pendientesManual = [];
+    estadoUI.listadoResumenActual = [];
+    estadoUI.listadoManualActual = [];
+    estadoUI.detalleResumenActualKey = '';
+    estadoUI.detalleResumenEditando = false;
+    estadoUI.alertaDetallePendiente = null;
+    estadoUI.detalleManualActualKey = '';
+    estadoUI.filtroEstadoResumen = 'TODOS';
+    estadoUI.filtroOrigenResumen = 'TODOS';
+    estadoUI.filtroCargaResumen = 'TODAS';
+    estadoUI.filtroCarteraResumen = 'TODAS';
+    estadoUI.filtroTarifaResumen = 'TODAS';
+    estadoUI.listadoPadronExpandido = false;
+    estadoUI.resumenMetricas = {
+      total: 0,
+      pendientes: 0,
+      leidosSinCarga: 0,
+      realizados: 0,
+      realizadosExactos: 0,
+      cortados: 0,
+      retirados: 0
+    };
+    aplicarModoPantallaCompletaListado(false);
+    renderUploadLog();
+    renderProcessLog();
+    renderManualLog();
+    document.getElementById('quadrillasContainer').innerHTML = '';
+    document.getElementById('detalleSuministroContainer').innerHTML = 'Sin resultados aun.';
+    document.getElementById('detalleSuministroMeta').innerText = 'Seleccione un suministro del listado o use el buscador.';
+    actualizarCabeceraDetalleSuministro('', '');
+    ocultarAlerta(document.getElementById('detalleCrudGlobalAlert'));
+    document.getElementById('listadoSuministrosMeta').innerText = 'Cargando listado del padrón.';
+    document.getElementById('listadoSuministrosContainer').innerHTML = 'Sin resultados aun.';
+    document.getElementById('estadoResumenFiltros').innerHTML = '';
+    document.getElementById('filtroOrigenResumen').innerHTML = '<option value="TODOS">Todos</option>';
+    document.getElementById('filtroCargaResumen').innerHTML = '<option value="TODAS">Todas</option>';
+    document.getElementById('filtroCarteraResumen').innerHTML = '<option value="TODAS">Todas</option>';
+    document.getElementById('filtroTarifaResumen').innerHTML = '<option value="TODAS">Todas</option>';
+    document.getElementById('buscadorManualSuministro').value = '';
+    document.getElementById('archivoCargaManualMasiva').value = '';
+    document.getElementById('manualPendientesMeta').innerText = 'Cargando suministros pendientes.';
+    document.getElementById('manualPendientesContainer').innerHTML = 'Sin resultados aun.';
+    document.getElementById('manualDetalleMeta').innerText = 'Seleccione un suministro pendiente del listado.';
+    document.getElementById('manualFormularioContainer').innerHTML = 'Sin resultados aun.';
+    document.getElementById('manualPendientesBadge').innerHTML = '<i class="fas fa-list-check"></i> 0 pendientes';
+  }
+
+  function subirArchivosPadron() {
+    const btn = document.getElementById('btnSubirPadron');
+    const alertBox = document.getElementById('uploadAlert');
+    const fileInput = document.getElementById('archivoPadron');
+    const periodoCarga = document.getElementById('periodoCargaPadron').value;
+    const file = fileInput.files[0];
+
+    if (!periodoCarga) {
+      mostrarAlerta(alertBox, 'danger', 'Seleccione el mes que se va a cargar.');
+      return;
+    }
+
+    if (!file) {
+      mostrarAlerta(alertBox, 'danger', 'Seleccione un archivo Excel del padrón.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cargando...';
+    mostrarAlerta(alertBox, 'info', 'Subiendo y validando suministros del padrón...');
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const fileData = {
+        data: e.target.result.split(',')[1],
+        mimeType: file.type,
+        fileName: file.name
+      };
+
+      google.script.run
+        .withSuccessHandler(function(respuesta) {
+          registrarCarga(respuesta);
+          mostrarAlerta(
+            alertBox,
+            'success',
+            respuesta.mensaje + ' Período: ' + (respuesta.periodoSeleccionado || respuesta.periodo) + '. Registros: ' + respuesta.registros + '.'
+          );
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-upload me-2"></i>Actualizar padrón';
+          fileInput.value = '';
+          actualizarResumen(true);
+        })
+        .withFailureHandler(function(error) {
+          mostrarAlerta(alertBox, 'danger', error.message || 'No se pudo cargar el padrón.');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-upload me-2"></i>Actualizar padrón';
+        })
+        .ingestarNuevoPadron(fileData, periodoCarga);
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  function borrarCargaPadron() {
+    const alertBox = document.getElementById('uploadAlert');
+    const btn = document.getElementById('btnBorrarPadron');
+    const periodoCarga = document.getElementById('periodoCargaPadron').value;
+    const usuarioActual = estadoUI.usuarioActual || {};
+
+    if (!periodoCarga) {
+      mostrarAlerta(alertBox, 'danger', 'Seleccione el mes del padrón que desea borrar.');
+      return;
+    }
+
+    if (!usuarioActual.usuario) {
+      mostrarAlerta(alertBox, 'danger', 'No se pudo identificar el usuario conectado. Vuelva a iniciar sesión.');
+      return;
+    }
+
+    if (!window.confirm('Advertencia 1: se borrarán todos los registros del padrón del período ' + periodoCarga + '.')) {
+      return;
+    }
+
+    if (!window.confirm('Advertencia 2: esta acción no se puede deshacer y afectará el Panel de Control, las lecturas y la carga manual del período ' + periodoCarga + '.')) {
+      return;
+    }
+
+    const clave = window.prompt('Ingrese la clave del usuario ' + usuarioActual.usuario + ' para confirmar el borrado del período ' + periodoCarga + '.');
+    if (clave === null) {
+      return;
+    }
+
+    if (!normalizarTextoCliente(clave)) {
+      mostrarAlerta(alertBox, 'danger', 'Debe ingresar la clave del usuario para continuar.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Borrando...';
+    mostrarAlerta(alertBox, 'warning', 'Validando la clave y borrando la carga del padrón...');
+
+    google.script.run
+      .withSuccessHandler(function(respuesta) {
+        registrarCarga(respuesta);
+        mostrarAlerta(
+          alertBox,
+          'success',
+          (respuesta.mensaje || 'Se borró la carga del padrón.') + ' Período: ' + (respuesta.periodoSeleccionado || respuesta.periodo) + '.'
+        );
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash-can me-2"></i>Borrar carga de padrón';
+        actualizarResumen(true);
+        actualizarModuloManual(true);
+      })
+      .withFailureHandler(function(error) {
+        mostrarAlerta(alertBox, 'danger', error.message || 'No se pudo borrar la carga del padrón.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash-can me-2"></i>Borrar carga de padrón';
+      })
+      .borrarCargaPadron(periodoCarga, usuarioActual.usuario, clave);
+  }
+
+  function ejecutarMotorLecturas(cuadrillaKey) {
+    const boton = cuadrillaKey
+      ? document.querySelector('[data-cuadrilla-key="' + cuadrillaKey + '"]')
+      : document.getElementById('btnProcesarTodas');
+    const consola = document.getElementById('consolaMotor');
+    const nombreObjetivo = cuadrillaKey
+      ? obtenerEtiquetaCuadrilla(cuadrillaKey)
+      : 'todas las cuadrillas';
+
+    if (boton) {
+      boton.disabled = true;
+      boton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+    }
+    mostrarAlerta(consola, 'info', 'Leyendo archivos de ' + nombreObjetivo + ' y actualizando el padrón...');
+
+    let request = google.script.run
+      .withSuccessHandler(function(resultado) {
+        restaurarBotonProcesamiento(cuadrillaKey);
+        registrarProceso(resultado, cuadrillaKey);
+
+        const resumen = resultado.resumen || {};
+        const html = [
+          '<strong>Período procesado:</strong> ' + (resultado.periodo || 'Sin definir'),
+          '<br><strong>Archivos encontrados:</strong> ' + (resumen.archivosEncontrados || 0),
+          '<br><strong>Procesados:</strong> ' + (resumen.procesados || 0),
+          '<br><strong>Leídos sin Parámetros:</strong> ' + (resumen.leidosSinCarga || 0),
+          '<br><strong>Omitidos:</strong> ' + (resumen.omitidos || 0),
+          '<br><strong>Errores:</strong> ' + (resumen.errores || 0)
+        ].join('');
+
+        mostrarAlerta(consola, (resumen.procesados || 0) > 0 ? 'success' : 'warning', html);
+        actualizarResumen(true);
+      })
+      .withFailureHandler(function(error) {
+        restaurarBotonProcesamiento(cuadrillaKey);
+        mostrarAlerta(consola, 'danger', error.message || 'No se pudo ejecutar el procesamiento.');
+      });
+
+    if (cuadrillaKey) {
+      request.procesarCuadrilla(cuadrillaKey);
+      return;
+    }
+
+    request.procesarTodo();
+  }
+
+  function descargarSinCargaCuadrilla(cuadrillaKey) {
+    const boton = document.querySelector('[data-cuadrilla-download-key="' + cuadrillaKey + '"]');
+    const consola = document.getElementById('consolaMotor');
+    const filtroPeriodo = document.getElementById('filtroPeriodoResumen');
+    const periodo = filtroPeriodo ? filtroPeriodo.value : '';
+
+    if (!periodo) {
+      mostrarAlerta(consola, 'danger', 'Seleccione el período que desea descargar.');
+      return;
+    }
+
+    if (boton) {
+      boton.disabled = true;
+      boton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Descargando...';
+    }
+    mostrarAlerta(consola, 'info', 'Preparando el ZIP de archivos sin parametros de ' + obtenerEtiquetaCuadrilla(cuadrillaKey) + '...');
+
+    google.script.run
+      .withSuccessHandler(function(respuesta) {
+        restaurarBotonDescargaSinCarga(cuadrillaKey);
+        mostrarAlerta(
+          consola,
+          'success',
+          (respuesta.mensaje || 'ZIP generado correctamente.') +
+            ' Archivos: ' + (respuesta.archivos || 0) +
+            '. Suministros: ' + (respuesta.suministros || 0) + '.'
+        );
+        const link = document.createElement('a');
+        link.href = respuesta.urlDescarga || respuesta.url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.click();
+      })
+      .withFailureHandler(function(error) {
+        restaurarBotonDescargaSinCarga(cuadrillaKey);
+        mostrarAlerta(consola, 'danger', error.message || 'No se pudo generar el ZIP de archivos sin parametros.');
+      })
+      .descargarZipSinCargaCuadrilla(cuadrillaKey, periodo);
+  }
+
+  function actualizarResumen(rebuscarSiAplica) {
+    const filtro = document.getElementById('filtroPeriodoResumen');
+    const periodoSeleccionado = filtro ? filtro.value : '';
+
+    ['card-total', 'card-pendientes', 'card-leidos-sin-carga', 'card-completos'].forEach(function(id) {
+      document.getElementById(id).innerHTML = '<span class="spinner-border spinner-border-sm text-muted"></span>';
+    });
+    document.getElementById('listadoSuministrosMeta').innerText = 'Cargando suministros del período...';
+    document.getElementById('listadoSuministrosContainer').innerHTML =
+      '<div class="text-muted small">Cargando listado...</div>';
+
+    google.script.run
+      .withSuccessHandler(function(response) {
+        estadoUI.periodos = response.periodosDisponibles || [];
+        estadoUI.suministrosResumen = response.suministros || [];
+        estadoUI.detalleResumenActualKey = '';
+        estadoUI.detalleResumenEditando = false;
+        const metricasEstado = construirMetricasEstadoResumen(response.suministros || []);
+        estadoUI.resumenMetricas = {
+          total: Number(response.total || 0),
+          pendientes: Number(response.pendientes || 0),
+          leidosSinCarga: Number(response.leidosSinCarga || 0),
+          realizados: Number(response.realizados || 0),
+          realizadosExactos: metricasEstado.realizadosExactos,
+          cortados: metricasEstado.cortados,
+          retirados: metricasEstado.retirados
+        };
+        renderSelectorPeriodos(response.periodosDisponibles || [], response.periodo);
+        renderFiltrosEstadoResumen();
+        renderFiltrosSecundariosResumen();
+        document.getElementById('card-total').innerText = response.total || '0';
+        document.getElementById('card-pendientes').innerText = response.pendientes || '0';
+        document.getElementById('card-leidos-sin-carga').innerText = response.leidosSinCarga || '0';
+        document.getElementById('card-completos').innerText = response.realizados || '0';
+        document.getElementById('periodoActivoDisplay').innerHTML = '<i class="fas fa-calendar"></i> ' + (response.periodoLabel || response.periodo || 'Sin datos');
+        renderListadoSuministros(obtenerListadoResumenFiltrado(), {
+          periodoLabel: response.periodoLabel || response.periodo || 'Sin datos',
+          totalMes: response.totalSuministros || 0,
+          filtro: normalizarTextoCliente(document.getElementById('buscadorSuministro').value),
+          estadoFiltro: estadoUI.filtroEstadoResumen
+        });
+        document.getElementById('detalleSuministroMeta').innerText = 'Seleccione un suministro del listado o use el buscador.';
+        document.getElementById('detalleSuministroContainer').innerHTML = 'Sin resultados aún.';
+        actualizarCabeceraDetalleSuministro('', '');
+
+        if (rebuscarSiAplica && normalizarTextoCliente(document.getElementById('buscadorSuministro').value)) {
+          buscarSuministroResumen();
+        }
+      })
+      .withFailureHandler(function() {
+        estadoUI.suministrosResumen = [];
+        estadoUI.listadoResumenActual = [];
+        document.getElementById('card-total').innerText = '--';
+        document.getElementById('card-pendientes').innerText = '--';
+        document.getElementById('card-leidos-sin-carga').innerText = '--';
+        document.getElementById('card-completos').innerText = '--';
+        document.getElementById('periodoActivoDisplay').innerHTML = '<i class="fas fa-calendar"></i> Sin datos';
+        document.getElementById('listadoSuministrosMeta').innerText = 'No fue posible cargar el listado.';
+        document.getElementById('listadoSuministrosContainer').innerHTML =
+          '<div class="text-muted small">No se pudo cargar el listado del padrón.</div>';
+        renderFiltrosSecundariosResumen();
+        actualizarCabeceraDetalleSuministro('', '');
+      })
+      .getResumenMensual(periodoSeleccionado);
+  }
+
+  function renderSelectorPeriodos(periodos, periodoActivo) {
+    const select = document.getElementById('filtroPeriodoResumen');
+    if (!select) {
+      return;
+    }
+
+    const actual = select.value;
+    const valorSeleccionado = actual || periodoActivo || '';
+    const opciones = (periodos || []).map(function(periodo) {
+      const selected = periodo.value === valorSeleccionado ? ' selected' : '';
+      return '<option value="' + periodo.value + '"' + selected + '>' + periodo.label + '</option>';
+    });
+
+    if (!opciones.length && periodoActivo) {
+      opciones.push('<option value="' + periodoActivo + '">' + periodoActivo + '</option>');
+    }
+
+    select.innerHTML = opciones.join('');
+
+    if (select.value !== valorSeleccionado && valorSeleccionado) {
+      select.value = valorSeleccionado;
+    }
+  }
+
+  function buscarSuministroResumen() {
+    const suministro = document.getElementById('buscadorSuministro').value;
+    const meta = document.getElementById('detalleSuministroMeta');
+    const coincidencias = obtenerListadoResumenFiltrado();
+    const periodoTexto = document.getElementById('periodoActivoDisplay').innerText || 'Sin datos';
+    estadoUI.detalleResumenEditando = false;
+    if (!estadoUI.alertaDetallePendiente) {
+      ocultarAlerta(document.getElementById('detalleCrudGlobalAlert'));
+    }
+
+    if (!normalizarTextoCliente(suministro)) {
+      meta.innerText = 'Ingrese un suministro para consultar.';
+      document.getElementById('detalleSuministroContainer').innerHTML = '<div class="text-muted small">Sin resultados aun.</div>';
+      actualizarCabeceraDetalleSuministro('', '');
+      renderListadoSuministros(obtenerListadoResumenFiltrado(), {
+        periodoLabel: periodoTexto,
+        totalMes: estadoUI.suministrosResumen.length,
+        filtro: '',
+        estadoFiltro: estadoUI.filtroEstadoResumen
+      });
+      return;
+    }
+
+    renderListadoSuministros(coincidencias, {
+      periodoLabel: periodoTexto,
+      totalMes: estadoUI.suministrosResumen.length,
+      filtro: suministro,
+      estadoFiltro: estadoUI.filtroEstadoResumen
+    });
+
+    if (!coincidencias.length) {
+      meta.innerText = 'No se encontraron coincidencias para el suministro solicitado.';
+      document.getElementById('detalleSuministroContainer').innerHTML = '<div class="text-muted small">No se encontraron coincidencias.</div>';
+      estadoUI.detalleResumenActualKey = '';
+      actualizarCabeceraDetalleSuministro('', '');
+      return;
+    }
+
+    estadoUI.detalleResumenActualKey = coincidencias[0].key;
+    meta.innerText = coincidencias.length === 1
+      ? 'Se encontró 1 suministro en el listado actual.'
+      : 'Se encontraron ' + coincidencias.length + ' suministros en el listado actual.';
+    actualizarCabeceraDetalleSuministro(
+      coincidencias[0].suministro || '',
+      (coincidencias[0].carga && coincidencias[0].carga.origenLectura) || (coincidencias[0].resumenListado && coincidencias[0].resumenListado.origen) || ''
+    );
+    renderDetalleSuministro([coincidencias[0]]);
+    aplicarAlertaDetallePendiente();
+    renderListadoSuministros(coincidencias, {
+      periodoLabel: periodoTexto,
+      totalMes: estadoUI.suministrosResumen.length,
+      filtro: suministro,
+      estadoFiltro: estadoUI.filtroEstadoResumen
+    });
+  }
+
+  function limpiarBusquedaSuministro() {
+    document.getElementById('buscadorSuministro').value = '';
+    estadoUI.detalleResumenActualKey = '';
+    estadoUI.detalleResumenEditando = false;
+    estadoUI.alertaDetallePendiente = null;
+    document.getElementById('detalleSuministroMeta').innerText = 'Seleccione un suministro del listado o use el buscador.';
+    document.getElementById('detalleSuministroContainer').innerHTML = 'Sin resultados aun.';
+    actualizarCabeceraDetalleSuministro('', '');
+    ocultarAlerta(document.getElementById('detalleCrudGlobalAlert'));
+    renderListadoSuministros(obtenerListadoResumenFiltrado(), {
+      periodoLabel: document.getElementById('periodoActivoDisplay').innerText || 'Sin datos',
+      totalMes: estadoUI.suministrosResumen.length,
+      filtro: '',
+      estadoFiltro: estadoUI.filtroEstadoResumen
+    });
+  }
+
+  function exportarPadronExcel() {
+    const boton = document.getElementById('btnExportarPadronExcel');
+    const alertBox = document.getElementById('padronExportAlert');
+    const filtro = document.getElementById('filtroPeriodoResumen');
+    const periodo = filtro ? filtro.value : '';
+
+    if (!periodo) {
+      mostrarAlerta(alertBox, 'danger', 'Seleccione el mes del padrón que desea exportar.');
+      return;
+    }
+
+    boton.disabled = true;
+    boton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Exportando...';
+    mostrarAlerta(alertBox, 'info', 'Generando el Excel del padrón ENOSA con la carga actual...');
+
+    google.script.run
+      .withSuccessHandler(function(respuesta) {
+        mostrarAlerta(
+          alertBox,
+          'success',
+          (respuesta.mensaje || 'Exportacion generada correctamente.') +
+            ' Registros: ' + (respuesta.registros || 0) + '.'
+        );
+        boton.disabled = false;
+        boton.innerHTML = '<i class="fas fa-file-arrow-down me-1"></i> Exportar Excel';
+        const link = document.createElement('a');
+        link.href = respuesta.urlDescarga || respuesta.url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.click();
+      })
+      .withFailureHandler(function(error) {
+        mostrarAlerta(alertBox, 'danger', error.message || 'No se pudo exportar el padrón.');
+        boton.disabled = false;
+        boton.innerHTML = '<i class="fas fa-file-arrow-down me-1"></i> Exportar Excel';
+      })
+      .exportarPadronEnosa(periodo);
+  }
+
+  function actualizarModuloManual(mantenerSeleccion) {
+    const filtro = document.getElementById('filtroPeriodoManual');
+    const periodoSeleccionado = filtro ? filtro.value : '';
+
+    document.getElementById('manualPendientesMeta').innerText = 'Cargando suministros pendientes...';
+    document.getElementById('manualPendientesContainer').innerHTML =
+      '<div class="text-muted small">Cargando listado...</div>';
+
+    google.script.run
+      .withSuccessHandler(function(response) {
+        const periodoLabel = response.periodoLabel || response.periodo || 'Sin datos';
+        const detalleAnterior = mantenerSeleccion ? estadoUI.detalleManualActualKey : '';
+
+        estadoUI.pendientesManual = response.suministros || [];
+        renderSelectorPeriodosManual(response.periodosDisponibles || [], response.periodo);
+        document.getElementById('manualPendientesBadge').innerHTML =
+          '<i class="fas fa-list-check"></i> ' + (response.totalPendientes || 0) + ' pendientes';
+
+        const listado = obtenerPendientesManualFiltrados();
+        renderPendientesManual(listado, {
+          totalPeriodo: response.totalPendientes || 0,
+          periodoLabel: periodoLabel,
+          filtro: document.getElementById('buscadorManualSuministro').value
+        });
+
+        const seleccionado = detalleAnterior
+          ? listado.find(function(item) { return item.key === detalleAnterior; })
+          : null;
+
+        if (seleccionado) {
+          estadoUI.detalleManualActualKey = seleccionado.key;
+          document.getElementById('manualDetalleMeta').innerText =
+            'Registrando carga para el suministro ' + (seleccionado.suministro || '-') + '.';
+          renderFormularioCargaManual(seleccionado);
+          renderPendientesManual(listado, {
+            totalPeriodo: response.totalPendientes || 0,
+            periodoLabel: periodoLabel,
+            filtro: document.getElementById('buscadorManualSuministro').value
+          });
+          return;
+        }
+
+        estadoUI.detalleManualActualKey = '';
+        document.getElementById('manualDetalleMeta').innerText = 'Seleccione un suministro pendiente del listado.';
+        renderFormularioCargaManual(null);
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('manualPendientesMeta').innerText = 'No fue posible cargar los pendientes.';
+        document.getElementById('manualPendientesContainer').innerHTML =
+          '<div class="text-muted small">No se pudo cargar el listado pendiente.</div>';
+        document.getElementById('manualDetalleMeta').innerText = 'Seleccione un suministro pendiente del listado.';
+        document.getElementById('manualFormularioContainer').innerHTML = 'Sin resultados aun.';
+        document.getElementById('manualPendientesBadge').innerHTML = '<i class="fas fa-list-check"></i> 0 pendientes';
+
+        if (error && error.message) {
+          mostrarAlerta(document.getElementById('manualAlert'), 'danger', error.message);
+        }
+      })
+      .listarPendientesCargaManual(periodoSeleccionado);
+  }
+
+  function renderSelectorPeriodosManual(periodos, periodoActivo) {
+    const select = document.getElementById('filtroPeriodoManual');
+    if (!select) {
+      return;
+    }
+
+    const actual = select.value;
+    const valorSeleccionado = actual || periodoActivo || '';
+    const opciones = (periodos || []).map(function(periodo) {
+      const selected = periodo.value === valorSeleccionado ? ' selected' : '';
+      return '<option value="' + periodo.value + '"' + selected + '>' + periodo.label + '</option>';
+    });
+
+    if (!opciones.length && periodoActivo) {
+      opciones.push('<option value="' + periodoActivo + '">' + periodoActivo + '</option>');
+    }
+
+    select.innerHTML = opciones.join('');
+
+    if (select.value !== valorSeleccionado && valorSeleccionado) {
+      select.value = valorSeleccionado;
+    }
+  }
+
+  function obtenerPendientesManualFiltrados() {
+    return aplicarFiltroPendientesManual(
+      estadoUI.pendientesManual,
+      document.getElementById('buscadorManualSuministro').value
+    );
+  }
+
+  function aplicarFiltroPendientesManual(base, suministro) {
+    const termino = normalizarTextoCliente(suministro);
+    const listadoBase = Array.isArray(base) ? base : [];
+
+    if (!termino) {
+      return listadoBase.slice();
+    }
+
+    const terminoNormalizado = normalizarSuministroCliente(termino);
+    const terminoTexto = termino.toUpperCase();
+
+    return listadoBase.filter(function(item) {
+      const suministroActual = normalizarTextoCliente(item.suministro);
+      const suministroNormalizado = normalizarSuministroCliente(suministroActual);
+      const suministroTexto = suministroActual.toUpperCase();
+
+      return suministroNormalizado === terminoNormalizado ||
+        suministroTexto === terminoTexto ||
+        suministroNormalizado.indexOf(terminoNormalizado) !== -1 ||
+        suministroTexto.indexOf(terminoTexto) !== -1;
+    });
+  }
+
+  function buscarPendientesManual() {
+    const suministro = document.getElementById('buscadorManualSuministro').value;
+    const listado = obtenerPendientesManualFiltrados();
+    const periodoTexto = document.getElementById('filtroPeriodoManual').selectedOptions.length
+      ? document.getElementById('filtroPeriodoManual').selectedOptions[0].text
+      : 'Sin datos';
+
+    renderPendientesManual(listado, {
+      totalPeriodo: estadoUI.pendientesManual.length,
+      periodoLabel: periodoTexto,
+      filtro: suministro
+    });
+
+    if (!normalizarTextoCliente(suministro)) {
+      estadoUI.detalleManualActualKey = '';
+      document.getElementById('manualDetalleMeta').innerText = 'Seleccione un suministro pendiente del listado.';
+      renderFormularioCargaManual(null);
+      return;
+    }
+
+    if (!listado.length) {
+      estadoUI.detalleManualActualKey = '';
+      document.getElementById('manualDetalleMeta').innerText = 'No se encontraron pendientes para el suministro solicitado.';
+      renderFormularioCargaManual(null);
+      return;
+    }
+
+    estadoUI.detalleManualActualKey = listado[0].key;
+    document.getElementById('manualDetalleMeta').innerText = listado.length === 1
+      ? 'Se encontró 1 suministro pendiente para registrar.'
+      : 'Se encontraron ' + listado.length + ' suministros pendientes.';
+    renderFormularioCargaManual(listado[0]);
+    renderPendientesManual(listado, {
+      totalPeriodo: estadoUI.pendientesManual.length,
+      periodoLabel: periodoTexto,
+      filtro: suministro
+    });
+  }
+
+  function limpiarBusquedaManual() {
+    document.getElementById('buscadorManualSuministro').value = '';
+    estadoUI.detalleManualActualKey = '';
+    document.getElementById('manualDetalleMeta').innerText = 'Seleccione un suministro pendiente del listado.';
+    renderFormularioCargaManual(null);
+    renderPendientesManual(obtenerPendientesManualFiltrados(), {
+      totalPeriodo: estadoUI.pendientesManual.length,
+      periodoLabel: document.getElementById('filtroPeriodoManual').selectedOptions.length
+        ? document.getElementById('filtroPeriodoManual').selectedOptions[0].text
+        : 'Sin datos',
+      filtro: ''
+    });
+  }
+
+  function renderPendientesManual(items, opciones) {
+    const container = document.getElementById('manualPendientesContainer');
+    const meta = document.getElementById('manualPendientesMeta');
+    const listado = Array.isArray(items) ? items : [];
+    const listadoVisible = listado.slice(0, LIMITE_LISTADO_PADRON);
+    const config = opciones || {};
+    const totalPeriodo = Number(config.totalPeriodo || 0);
+    const periodoLabel = config.periodoLabel || 'Sin datos';
+    const filtro = normalizarTextoCliente(config.filtro);
+
+    estadoUI.listadoManualActual = listadoVisible.slice();
+
+    if (filtro) {
+      meta.innerText = 'Mostrando ' + listadoVisible.length + ' de ' + listado.length +
+        ' pendientes del período ' + periodoLabel + '.';
+    } else {
+      meta.innerText = 'Mostrando ' + listadoVisible.length + ' de ' + totalPeriodo +
+        ' pendientes del período ' + periodoLabel + '.';
+    }
+
+    if (!listado.length) {
+      container.innerHTML = '<div class="text-muted small">No hay suministros pendientes para mostrar.</div>';
+      return;
+    }
+
+    const filas = listadoVisible.map(function(item, index) {
+      const rowClass = item.key === estadoUI.detalleManualActualKey ? 'table-active' : '';
+
+      return (
+        '<tr class="' + rowClass + '">' +
+          '<td class="small text-nowrap"><button class="btn btn-outline-primary btn-sm" onclick="seleccionarPendienteManual(' + index + ')">Cargar</button></td>' +
+          '<td class="small text-nowrap">' + renderBadgeEstado(item.estado) + '</td>' +
+          '<td class="small text-nowrap">' + (item.suministro || '-') + '</td>' +
+          '<td class="small text-nowrap">' + ((item.vistaRapida && item.vistaRapida.nombre) || '-') + '</td>' +
+          '<td class="small text-nowrap">' + ((item.vistaRapida && item.vistaRapida.ruta) || '-') + '</td>' +
+          '<td class="small text-nowrap">' + ((item.vistaRapida && item.vistaRapida.tarifa) || '-') + '</td>' +
+          '<td class="small">' + renderCargaListado(item.carga) + '</td>' +
+        '</tr>'
+      );
+    }).join('');
+
+    container.innerHTML =
+      '<div class="table-responsive padron-list-scroll" style="max-height:580px;overflow:auto;display:block;">' +
+        '<table class="table table-sm table-hover align-middle mb-0">' +
+          '<thead>' +
+            '<tr>' +
+              '<th class="text-nowrap small">Accion</th>' +
+              '<th class="text-nowrap small">Estado</th>' +
+              '<th class="text-nowrap small">Suministro</th>' +
+              '<th class="text-nowrap small">Nombre</th>' +
+              '<th class="text-nowrap small">Ruta</th>' +
+              '<th class="text-nowrap small">Tarifa</th>' +
+              '<th class="text-nowrap small">Carga actual</th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody>' + filas + '</tbody>' +
+        '</table>' +
+      '</div>';
+  }
+
+  function seleccionarPendienteManual(index) {
+    const item = estadoUI.listadoManualActual[index];
+    if (!item) {
+      return;
+    }
+
+    estadoUI.detalleManualActualKey = item.key;
+    document.getElementById('buscadorManualSuministro').value = item.suministro || '';
+    document.getElementById('manualDetalleMeta').innerText =
+      'Registrando carga para el suministro ' + (item.suministro || '-') + '.';
+    renderFormularioCargaManual(item);
+    renderPendientesManual(estadoUI.listadoManualActual, {
+      totalPeriodo: estadoUI.pendientesManual.length,
+      periodoLabel: document.getElementById('filtroPeriodoManual').selectedOptions.length
+        ? document.getElementById('filtroPeriodoManual').selectedOptions[0].text
+        : 'Sin datos',
+      filtro: document.getElementById('buscadorManualSuministro').value
+    });
+  }
+
+  function renderFormularioCargaManual(item) {
+    const container = document.getElementById('manualFormularioContainer');
+
+    if (!item) {
+      container.innerHTML = '<div class="text-muted small">Seleccione un suministro pendiente para registrar la carga manual.</div>';
+      return;
+    }
+
+    const carga = item.carga || {};
+    const vistaRapida = item.vistaRapida || {};
+    const camposLectura = ['EAT', 'EAHP', 'EAFP', 'ER', 'PHP', 'PFP'].map(function(clave) {
+      return (
+        '<div class="reading-card">' +
+          '<label class="reading-label" for="manualCampo' + clave + '">' + clave + '</label>' +
+          '<input type="text" class="form-control border-0 bg-transparent shadow-none px-0 pt-1 pb-0" id="manualCampo' + clave + '" value="' + escaparHtmlCliente(carga[clave] || '') + '" placeholder="-">' +
+        '</div>'
+      );
+    }).join('');
+
+    const estadoLectura = item.estadoLectura && item.estadoLectura !== '-' ? item.estadoLectura : 'Sin estado';
+
+    container.innerHTML =
+      '<div class="detail-section mb-3">' +
+        '<div class="detail-section-title">Lecturas manuales</div>' +
+        '<div class="reading-grid">' + camposLectura + '</div>' +
+        '<div class="reading-note mt-3">' +
+          '<label class="detail-label mb-2" for="manualCampoOBS">Observación</label>' +
+          '<textarea id="manualCampoOBS" class="form-control" rows="2" placeholder="-">' + escaparHtmlCliente(carga.observacion || '') + '</textarea>' +
+        '</div>' +
+        '<div class="d-grid gap-2 mt-3">' +
+          '<button id="btnGuardarCargaManual" class="btn btn-primary" onclick="guardarCargaManual()">Guardar carga manual</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="detail-section">' +
+        '<div class="d-flex justify-content-between align-items-start gap-3 mb-3">' +
+          '<div class="detail-section-title mb-0">Suministro seleccionado</div>' +
+          '<div class="d-flex flex-column align-items-end gap-2">' +
+            renderBadgeEstado(item.estado) +
+            renderBadgeCarga(item.carga) +
+          '</div>' +
+        '</div>' +
+        '<div class="summary-quick-grid">' +
+          renderQuickField('Suministro', item.suministro) +
+          renderQuickField('Nombre', vistaRapida.nombre) +
+          renderQuickField('Dirección', vistaRapida.direccion) +
+          renderQuickField('Ruta', vistaRapida.ruta) +
+          renderQuickField('Tarifa', vistaRapida.tarifa) +
+          renderQuickField('Ruta-Cuadrilla', vistaRapida.rutaCuadrilla) +
+          renderQuickField('Tipo -Lec.', vistaRapida.tipoLectura) +
+          renderQuickField('Estado lectura', estadoLectura) +
+        '</div>' +
+      '</div>';
+  }
+
+  function guardarCargaManual() {
+    const item = estadoUI.pendientesManual.find(function(registro) {
+      return registro.key === estadoUI.detalleManualActualKey;
+    });
+    const alertBox = document.getElementById('manualAlert');
+    const boton = document.getElementById('btnGuardarCargaManual');
+
+    if (!item) {
+      mostrarAlerta(alertBox, 'danger', 'Seleccione un suministro pendiente antes de guardar.');
+      return;
+    }
+
+    const payload = {
+      suministro: item.suministro,
+      periodo: item.periodo,
+      EAT: document.getElementById('manualCampoEAT').value,
+      EAHP: document.getElementById('manualCampoEAHP').value,
+      EAFP: document.getElementById('manualCampoEAFP').value,
+      ER: document.getElementById('manualCampoER').value,
+      PHP: document.getElementById('manualCampoPHP').value,
+      PFP: document.getElementById('manualCampoPFP').value,
+      observacion: document.getElementById('manualCampoOBS').value
+    };
+
+    boton.disabled = true;
+    boton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+    mostrarAlerta(alertBox, 'info', 'Registrando la carga manual del suministro seleccionado...');
+
+    google.script.run
+      .withSuccessHandler(function(respuesta) {
+        registrarOperacionManual({
+          tipo: 'individual',
+          titulo: respuesta.suministro,
+          mensaje: respuesta.mensaje,
+          periodo: respuesta.periodoLabel || respuesta.periodo,
+          timestamp: respuesta.timestamp
+        });
+        mostrarAlerta(alertBox, 'success', respuesta.mensaje + ' Período: ' + (respuesta.periodoLabel || respuesta.periodo) + '.');
+        boton.disabled = false;
+        boton.innerHTML = 'Guardar carga manual';
+        actualizarResumen(true);
+        actualizarModuloManual(false);
+      })
+      .withFailureHandler(function(error) {
+        mostrarAlerta(alertBox, 'danger', error.message || 'No se pudo registrar la carga manual.');
+        boton.disabled = false;
+        boton.innerHTML = 'Guardar carga manual';
+      })
+      .registrarCargaManual(payload);
+  }
+
+  function descargarPlantillaCargaManual() {
+    const boton = document.getElementById('btnDescargarPlantillaManual');
+    const alertBox = document.getElementById('manualAlert');
+    const periodo = document.getElementById('filtroPeriodoManual').value;
+    const suministro = document.getElementById('buscadorManualSuministro').value;
+
+    boton.disabled = true;
+    boton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando...';
+    mostrarAlerta(alertBox, 'info', 'Generando la plantilla Excel para los pendientes del filtro actual...');
+
+    google.script.run
+      .withSuccessHandler(function(respuesta) {
+        registrarOperacionManual({
+          tipo: 'plantilla',
+          titulo: respuesta.nombre,
+          mensaje: respuesta.mensaje,
+          periodo: respuesta.periodoLabel || respuesta.periodo,
+          timestamp: respuesta.timestamp,
+          registros: respuesta.registros,
+          url: respuesta.urlDescarga || respuesta.url
+        });
+        mostrarAlerta(
+          alertBox,
+          'success',
+          respuesta.mensaje + ' Registros incluidos: ' + respuesta.registros + '.'
+        );
+        boton.disabled = false;
+        boton.innerHTML = '<i class="fas fa-file-arrow-down me-1"></i> Descargar plantilla';
+        const link = document.createElement('a');
+        link.href = respuesta.urlDescarga || respuesta.url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.click();
+      })
+      .withFailureHandler(function(error) {
+        mostrarAlerta(alertBox, 'danger', error.message || 'No se pudo generar la plantilla.');
+        boton.disabled = false;
+        boton.innerHTML = '<i class="fas fa-file-arrow-down me-1"></i> Descargar plantilla';
+      })
+      .generarPlantillaCargaManual(periodo, suministro);
+  }
+
+  function subirPlantillaCargaManual() {
+    const boton = document.getElementById('btnSubirPlantillaManual');
+    const alertBox = document.getElementById('manualBulkAlert');
+    const fileInput = document.getElementById('archivoCargaManualMasiva');
+    const periodo = document.getElementById('filtroPeriodoManual').value;
+    const file = fileInput.files[0];
+
+    if (!periodo) {
+      mostrarAlerta(alertBox, 'danger', 'Seleccione el mes del padrón antes de subir la plantilla.');
+      return;
+    }
+
+    if (!file) {
+      mostrarAlerta(alertBox, 'danger', 'Seleccione un archivo Excel de carga manual.');
+      return;
+    }
+
+    boton.disabled = true;
+    boton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+    mostrarAlerta(alertBox, 'info', 'Leyendo la plantilla y aplicando las cargas manuales...');
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const fileData = {
+        data: e.target.result.split(',')[1],
+        mimeType: file.type,
+        fileName: file.name
+      };
+
+      google.script.run
+        .withSuccessHandler(function(respuesta) {
+          const resumen = respuesta.resumen || {};
+          const duplicadosConsolidados = respuesta.duplicadosConsolidados || [];
+          const noEncontrados = respuesta.noEncontrados || [];
+          const yaRealizados = respuesta.yaRealizados || [];
+          const omitidosPorOtraCausa = respuesta.omitidosPorOtraCausa || [];
+
+          registrarOperacionManual({
+            tipo: 'masiva',
+            titulo: respuesta.archivo,
+            mensaje: respuesta.mensaje,
+            periodo: (respuesta.periodos || []).join(', ') || '-',
+            timestamp: respuesta.timestamp,
+            resumen: resumen,
+            detalles: respuesta.detalles || [],
+            duplicadosConsolidados: duplicadosConsolidados,
+            noEncontrados: noEncontrados,
+            yaRealizados: yaRealizados,
+            omitidosPorOtraCausa: omitidosPorOtraCausa
+          });
+          mostrarAlerta(
+            alertBox,
+            'success',
+            '<div class="fw-bold mb-2">' + escaparHtmlCliente(respuesta.mensaje || 'Plantilla procesada correctamente.') + '</div>' +
+            construirResumenCargaMasivaHtml({
+              resumen: resumen,
+              duplicadosConsolidados: duplicadosConsolidados,
+              noEncontrados: noEncontrados,
+              yaRealizados: yaRealizados,
+              omitidosPorOtraCausa: omitidosPorOtraCausa
+            })
+          );
+          boton.disabled = false;
+          boton.innerHTML = '<i class="fas fa-upload me-2"></i>Subir plantilla';
+          fileInput.value = '';
+          actualizarResumen(true);
+          actualizarModuloManual(false);
+        })
+        .withFailureHandler(function(error) {
+          mostrarAlerta(alertBox, 'danger', error.message || 'No se pudo procesar la plantilla.');
+          boton.disabled = false;
+          boton.innerHTML = '<i class="fas fa-upload me-2"></i>Subir plantilla';
+        })
+        .procesarPlantillaCargaManual(fileData, periodo);
+    };
+
+    reader.readAsDataURL(file);
+  }
+  function registrarOperacionManual(operacion) {
+    estadoUI.historialManual.unshift(operacion || {});
+    estadoUI.historialManual = estadoUI.historialManual.slice(0, 10);
+    renderManualLog();
+  }
+
+  function renderManualLog() {
+    const container = document.getElementById('manualLogContainer');
+    if (!container) {
+      return;
+    }
+
+    if (!estadoUI.historialManual.length) {
+      container.innerHTML = '<div class="text-muted small">Aún no se registran operaciones manuales en esta sesión.</div>';
+      return;
+    }
+
+    container.innerHTML = estadoUI.historialManual.map(function(item) {
+      const enlace = item.url
+        ? '<div class="small"><a href="' + item.url + '" target="_blank" rel="noopener">Abrir archivo</a></div>'
+        : '';
+      const detalleMasivo = item.tipo === 'masiva'
+        ? construirResumenCargaMasivaHtml(item)
+        : '';
+      const detallePlantilla = item.tipo === 'plantilla' && item.registros
+        ? '<div class="small text-muted">Registros incluidos: ' + item.registros + '</div>'
+        : '';
+
+      return (
+        '<div class="log-entry py-3">' +
+          '<div class="d-flex justify-content-between align-items-start gap-3">' +
+            '<div>' +
+              '<div class="fw-bold">' + (item.titulo || 'Operación manual') + '</div>' +
+              '<div class="small text-muted">Tipo: ' + (item.tipo || '-') + ' | Período: ' + (item.periodo || '-') + '</div>' +
+              '<div class="small text-muted">' + (item.mensaje || '-') + '</div>' +
+              detalleMasivo +
+              detallePlantilla +
+              enlace +
+            '</div>' +
+            '<div class="small text-muted text-end">' + (item.timestamp || '-') + '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  function construirResumenCargaMasivaHtml(data) {
+    const item = data || {};
+    const resumen = item.resumen || {};
+    const bloques = [];
+
+    bloques.push(
+      '<div class="small mt-2">' +
+        '<div class="fw-bold text-dark">Resumen</div>' +
+        '<div class="text-muted">Filas con lectura: ' + (resumen.filasConLectura || 0) + '</div>' +
+        '<div class="text-muted">Registros únicos: ' + (resumen.registrosLeidos || 0) + '</div>' +
+        '<div class="text-muted">Procesados: ' + (resumen.procesados || 0) + '</div>' +
+        '<div class="text-muted">Omitidos: ' + (resumen.omitidos || 0) + '</div>' +
+        '<div class="text-muted">Errores: ' + (resumen.errores || 0) + '</div>' +
+      '</div>'
+    );
+
+    bloques.push(construirBloqueListaCargaMasiva('Duplicados consolidados', item.duplicadosConsolidados, 10));
+    bloques.push(construirBloqueListaCargaMasiva('No encontrados en padrón', item.noEncontrados, 10));
+    bloques.push(construirBloqueListaCargaMasiva('Ya realizados', item.yaRealizados, 10));
+    bloques.push(construirBloqueListaCargaMasiva('Otros omitidos', item.omitidosPorOtraCausa, 5));
+
+    return bloques.filter(function(bloque) {
+      return Boolean(bloque);
+    }).join('');
+  }
+
+  function construirBloqueListaCargaMasiva(titulo, items, limite) {
+    const lista = Array.isArray(items) ? items : [];
+    if (!lista.length) {
+      return '';
+    }
+
+    const visibles = lista.slice(0, limite).map(function(item) {
+      return escaparHtmlCliente(item);
+    });
+    const restantes = lista.length - visibles.length;
+    const cierre = restantes > 0 ? ' y ' + restantes + ' más.' : '.';
+
+    return (
+      '<div class="small mt-2">' +
+        '<div class="fw-bold text-dark">' + escaparHtmlCliente(titulo) + '</div>' +
+        '<div class="text-muted">' + visibles.join(', ') + cierre + '</div>' +
+      '</div>'
+    );
+  }
+
+  function renderDetalleSuministro(coincidencias) {
+    const container = document.getElementById('detalleSuministroContainer');
+
+    if (!coincidencias.length) {
+      container.innerHTML = '<div class="text-muted small">No se encontraron coincidencias.</div>';
+      return;
+    }
+
+    container.innerHTML = coincidencias.map(function(item) {
+      const editando = Boolean(estadoUI.detalleResumenEditando);
+
+      return (
+        '<div class="mb-4">' +
+          renderLecturasDetalleResumen(item, editando) +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  function renderAccionesDetalleResumen(item, editando) {
+    if (editando) {
+      return (
+        '<div class="d-flex flex-wrap justify-content-end gap-2">' +
+          '<button id="btnGuardarEdicionDetalle" class="btn btn-primary btn-sm" onclick="guardarEdicionDetalle()">Guardar</button>' +
+          '<button class="btn btn-outline-secondary btn-sm" onclick="cancelarEdicionDetalle()">Cancelar</button>' +
+        '</div>'
+      );
+    }
+
+    return (
+      '<div class="btn-group btn-group-sm" role="group">' +
+        '<button type="button" class="btn btn-outline-primary" onclick="activarEdicionDetalle()" title="Editar">' +
+          '<i class="fas fa-pen"></i>' +
+        '</button>' +
+        '<button type="button" class="btn btn-outline-warning dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Marcar cortado o retirado">' +
+          '<i class="fas fa-user-slash"></i>' +
+        '</button>' +
+        '<ul class="dropdown-menu dropdown-menu-end">' +
+          '<li><button type="button" class="dropdown-item" onclick="marcarEstadoLecturaDetalle(\'CORTADO\')">Marcar cortado</button></li>' +
+          '<li><button type="button" class="dropdown-item" onclick="marcarEstadoLecturaDetalle(\'RETIRADO\')">Marcar retirado</button></li>' +
+        '</ul>' +
+      '</div>'
+    );
+  }
+
+  function renderLecturasDetalleResumen(item, editando) {
+    const carga = item && item.carga ? item.carga : {};
+    const previas = carga.previas || {};
+    const mostrarPrevias = tienePreviasDetalle(item);
+    const encabezado = carga.sinCargaLeida && !carga.tieneCarga
+      ? '<div class="alert alert-warning py-2 mb-3">Archivo leído sin parámetros. Complete los parámetros desde este mismo detalle.</div>'
+      : '';
+    const bloquePrevias = mostrarPrevias
+      ? renderGrupoLecturasDetalle('Previa', previas, editando, 'detalleCampoPrev', 'PREV ')
+      : '';
+    const bloqueActuales = renderGrupoLecturasDetalle(
+      mostrarPrevias ? 'Instantánea' : 'Parámetros',
+      carga,
+      editando,
+      'detalleCampo',
+      ''
+    );
+    const estadoLecturaActual = item && item.estadoLectura && item.estadoLectura !== '-' ? item.estadoLectura : '';
+    const origenControl = editando
+      ? (
+        '<div class="quick-field">' +
+          '<label class="detail-label mb-2" for="detalleOrigenLectura">Origen lectura</label>' +
+          '<select id="detalleOrigenLectura" class="form-select form-select-sm">' +
+            construirOpcionesOrigenDetalle(valorEditableDetalle(carga.origenLectura)) +
+          '</select>' +
+        '</div>'
+      )
+      : renderQuickField('Origen lectura', carga.origenLectura);
+    const observacionBloque = editando
+      ? (
+        '<div class="quick-field">' +
+          '<label class="detail-label mb-2" for="detalleCampoOBS">Observación</label>' +
+          '<textarea id="detalleCampoOBS" class="form-control form-control-sm" rows="2" placeholder="-">' +
+            escaparHtmlCliente(valorEditableDetalle(carga.observacion)) +
+          '</textarea>' +
+        '</div>'
+      )
+      : renderQuickField('Observación', carga.observacion);
+    const estadoLecturaBloque = estadoLecturaActual
+      ? '<div class="summary-quick-grid mt-3">' + renderQuickField('Estado de lectura', estadoLecturaActual) + '</div>'
+      : '';
+
+    return (
+      '<div class="detail-section mb-3">' +
+        '<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">' +
+          '<div>' +
+            '<div class="detail-section-title mb-1">Lecturas y control</div>' +
+            '<div class="text-muted small">' + (editando
+              ? 'Edite origen, parámetros y observación sin salir de este bloque.'
+              : 'Suministro, origen y parámetros visibles en un solo bloque.') + '</div>' +
+          '</div>' +
+          renderAccionesDetalleResumen(item, editando) +
+        '</div>' +
+        encabezado +
+        bloquePrevias +
+        bloqueActuales +
+        estadoLecturaBloque +
+        (editando
+          ? '<div class="summary-quick-grid mt-3">' + origenControl + observacionBloque + '</div>'
+          : '') +
+      '</div>'
+    );
+  }
+
+  function renderGrupoLecturasDetalle(titulo, valores, editando, prefijoId, prefijoLabel) {
+    const data = valores || {};
+    return (
+      '<div class="' + (titulo === 'Parámetros' ? '' : 'reading-note ') + 'mb-3">' +
+        '<span class="detail-label">' + titulo + '</span>' +
+        '<div class="reading-grid mt-2">' +
+          ['EAT', 'EAHP', 'EAFP', 'ER', 'PHP', 'PFP'].map(function(clave) {
+            return editando
+              ? construirCampoEditableDetalle(
+                prefijoId + clave,
+                (prefijoLabel || '') + clave,
+                valorEditableDetalle(data[clave])
+              )
+              : construirTarjetaLecturaDetalle(
+                (prefijoLabel || '') + clave,
+                data[clave]
+              );
+          }).join('') +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function construirTarjetaLecturaDetalle(label, value) {
+    return (
+      '<div class="reading-card">' +
+        '<span class="reading-label">' + label + '</span>' +
+        '<span class="reading-value">' + (value === '' || value === null || value === undefined ? '-' : value) + '</span>' +
+      '</div>'
+    );
+  }
+
+  function construirCampoEditableDetalle(id, label, value) {
+    return (
+      '<div class="reading-card">' +
+        '<label class="reading-label" for="' + id + '">' + label + '</label>' +
+        '<input type="text" class="form-control form-control-sm border-0 bg-transparent shadow-none px-0 pt-1 pb-0" id="' + id + '" value="' + escaparHtmlCliente(value) + '" placeholder="-">' +
+      '</div>'
+    );
+  }
+
+  function construirOpcionesOrigenDetalle(valorActual) {
+    const valor = normalizarTextoCliente(valorActual).toUpperCase();
+    const opciones = [
+      { value: '', label: 'Sin definir' },
+      { value: 'TELEMETRIA', label: 'TELEMETRIA' },
+      { value: 'CAMPO', label: 'CAMPO' }
+    ];
+
+    return opciones.map(function(opcion) {
+      const selected = opcion.value === valor ? ' selected' : '';
+      return '<option value="' + opcion.value + '"' + selected + '>' + opcion.label + '</option>';
+    }).join('');
+  }
+
+  function tienePreviasDetalle(item) {
+    const carga = item && item.carga ? item.carga : {};
+    return Boolean(carga.esArchivoRg || carga.esAlphaset);
+  }
+
+  function valorEditableDetalle(valor) {
+    if (valor === null || valor === undefined) {
+      return '';
+    }
+
+    const texto = normalizarTextoCliente(valor);
+    return texto === '-' ? '' : texto;
+  }
+
+  function obtenerListadoResumenFiltrado() {
+    return aplicarFiltrosListadoResumen(
+      estadoUI.suministrosResumen,
+      document.getElementById('buscadorSuministro').value,
+      estadoUI.filtroEstadoResumen,
+      estadoUI.filtroOrigenResumen,
+      estadoUI.filtroCargaResumen,
+      estadoUI.filtroCarteraResumen,
+      estadoUI.filtroTarifaResumen
+    );
+  }
+
+  function aplicarFiltrosListadoResumen(base, suministro, estadoFiltro, origenFiltro, cargaFiltro, carteraFiltro, tarifaFiltro) {
+    const termino = normalizarTextoCliente(suministro);
+    const filtroEstado = normalizarTextoCliente(estadoFiltro).toUpperCase() || 'TODOS';
+    const filtroOrigen = normalizarTextoCliente(origenFiltro).toUpperCase() || 'TODOS';
+    const filtroCarga = normalizarTextoCliente(cargaFiltro).toUpperCase() || 'TODAS';
+    const filtroCartera = normalizarTextoCliente(carteraFiltro).toUpperCase() || 'TODAS';
+    const filtroTarifa = normalizarTextoCliente(tarifaFiltro).toUpperCase() || 'TODAS';
+    const listadoBase = Array.isArray(base) ? base : [];
+
+    return listadoBase.filter(function(item) {
+      const estadoActual = normalizarTextoCliente(item.estado).toUpperCase();
+      if (filtroEstado === 'PENDIENTE' && estadoActual !== 'PENDIENTE') {
+        return false;
+      }
+
+      if (filtroEstado === 'LEIDO SIN PARAMETROS' && estadoActual !== 'LEIDO SIN PARAMETROS') {
+        return false;
+      }
+
+      if (filtroEstado === 'REALIZADO' && estadoActual !== 'REALIZADO') {
+        return false;
+      }
+
+      if (filtroEstado === 'CORTADO' && estadoActual !== 'CORTADO') {
+        return false;
+      }
+
+      if (filtroEstado === 'RETIRADO' && estadoActual !== 'RETIRADO') {
+        return false;
+      }
+
+      const origenActual = normalizarTextoCliente(obtenerOrigenListadoResumen(item)).toUpperCase();
+      if (filtroOrigen !== 'TODOS' && origenActual !== filtroOrigen) {
+        return false;
+      }
+
+      const cargaActual = resolverTipoCargaListado(item.carga, estadoActual);
+      if (filtroCarga !== 'TODAS' && cargaActual !== filtroCarga) {
+        return false;
+      }
+
+      const carteraActual = normalizarTextoCliente(obtenerValorListadoResumen(item, 'cartera')).toUpperCase();
+      if (filtroCartera !== 'TODAS' && carteraActual !== filtroCartera) {
+        return false;
+      }
+
+      const tarifaActual = normalizarTextoCliente(obtenerValorListadoResumen(item, 'tarifa')).toUpperCase();
+      if (filtroTarifa !== 'TODAS' && tarifaActual !== filtroTarifa) {
+        return false;
+      }
+
+      if (!termino) {
+        return true;
+      }
+
+      const suministroActual = normalizarTextoCliente(item.suministro);
+      const suministroNormalizado = normalizarSuministroCliente(suministroActual);
+      const suministroTexto = suministroActual.toUpperCase();
+      const terminoNormalizado = normalizarSuministroCliente(termino);
+      const terminoTexto = termino.toUpperCase();
+
+      return suministroNormalizado === terminoNormalizado ||
+        suministroTexto === terminoTexto ||
+        suministroNormalizado.indexOf(terminoNormalizado) !== -1 ||
+        suministroTexto.indexOf(terminoTexto) !== -1;
+    });
+  }
+
+  function obtenerOrigenListadoResumen(item) {
+    return normalizarTextoCliente(
+      (item && item.carga && item.carga.origenLectura) ||
+      (item && item.resumenListado && item.resumenListado.origen) ||
+      ''
+    );
+  }
+
+  function obtenerValorListadoResumen(item, clave) {
+    return normalizarTextoCliente(
+      item && item.resumenListado ? item.resumenListado[clave] : ''
+    );
+  }
+
+  function resolverTipoCargaListado(carga, estadoActual) {
+    const data = carga || {};
+    if (data.tieneCarga) {
+      return 'CON_CARGA';
+    }
+
+    if (data.sinCargaLeida || estadoActual === 'LEIDO SIN PARAMETROS') {
+      return 'LEIDO SIN PARAMETROS';
+    }
+
+    return 'SIN_CARGA';
+  }
+
+  function renderFiltrosEstadoResumen() {
+    const container = document.getElementById('estadoResumenFiltros');
+    if (!container) {
+      return;
+    }
+
+    const filtros = [
+      { key: 'TODOS', label: 'Todos', total: estadoUI.resumenMetricas.total || 0 },
+      { key: 'PENDIENTE', label: 'Pendientes', total: estadoUI.resumenMetricas.pendientes || 0 },
+      { key: 'LEIDO SIN PARAMETROS', label: 'Leídos sin Parámetros', total: estadoUI.resumenMetricas.leidosSinCarga || 0 },
+      { key: 'REALIZADO', label: 'Realizados', total: estadoUI.resumenMetricas.realizadosExactos || 0 },
+      { key: 'CORTADO', label: 'Cortados', total: estadoUI.resumenMetricas.cortados || 0 },
+      { key: 'RETIRADO', label: 'Retirados', total: estadoUI.resumenMetricas.retirados || 0 }
+    ];
+
+    container.innerHTML = filtros.map(function(filtro) {
+      const active = filtro.key === estadoUI.filtroEstadoResumen ? 'active' : '';
+      return (
+        '<button class="list-filter-btn ' + active + '" onclick="cambiarFiltroEstadoResumen(\'' + filtro.key + '\')">' +
+          filtro.label + ' (' + filtro.total + ')' +
+        '</button>'
+      );
+    }).join('');
+  }
+
+  function construirMetricasEstadoResumen(items) {
+    const listado = Array.isArray(items) ? items : [];
+    const metricas = {
+      realizadosExactos: 0,
+      cortados: 0,
+      retirados: 0
+    };
+
+    listado.forEach(function(item) {
+      const estado = normalizarTextoCliente(item && item.estado).toUpperCase();
+      if (estado === 'REALIZADO') {
+        metricas.realizadosExactos++;
+      } else if (estado === 'CORTADO') {
+        metricas.cortados++;
+      } else if (estado === 'RETIRADO') {
+        metricas.retirados++;
+      }
+    });
+
+    return metricas;
+  }
+
+  function renderFiltrosSecundariosResumen() {
+    renderSelectFiltroResumen(
+      document.getElementById('filtroOrigenResumen'),
+      [{ value: 'TODOS', label: 'Todos' }].concat(
+        obtenerOpcionesResumen(estadoUI.suministrosResumen, obtenerOrigenListadoResumen)
+          .map(function(valor) {
+            return { value: valor, label: formatearOrigenLecturaVisible(valor) || valor };
+          })
+      ),
+      estadoUI.filtroOrigenResumen
+    );
+
+    renderSelectFiltroResumen(
+      document.getElementById('filtroCargaResumen'),
+      [
+        { value: 'TODAS', label: 'Todas' },
+        { value: 'CON_CARGA', label: 'Con carga' },
+        { value: 'LEIDO SIN PARAMETROS', label: 'Leído sin Parámetros' },
+        { value: 'SIN_CARGA', label: 'Sin carga' }
+      ],
+      estadoUI.filtroCargaResumen
+    );
+
+    renderSelectFiltroResumen(
+      document.getElementById('filtroCarteraResumen'),
+      [{ value: 'TODAS', label: 'Todas' }].concat(
+        obtenerOpcionesResumen(estadoUI.suministrosResumen, function(item) {
+          return obtenerValorListadoResumen(item, 'cartera');
+        }).map(function(valor) {
+          return { value: valor, label: valor };
+        })
+      ),
+      estadoUI.filtroCarteraResumen
+    );
+
+    renderSelectFiltroResumen(
+      document.getElementById('filtroTarifaResumen'),
+      [{ value: 'TODAS', label: 'Todas' }].concat(
+        obtenerOpcionesResumen(estadoUI.suministrosResumen, function(item) {
+          return obtenerValorListadoResumen(item, 'tarifa');
+        }).map(function(valor) {
+          return { value: valor, label: valor };
+        })
+      ),
+      estadoUI.filtroTarifaResumen
+    );
+  }
+
+  function renderSelectFiltroResumen(select, opciones, valorActual) {
+    if (!select) {
+      return;
+    }
+
+    const listaOpciones = Array.isArray(opciones) ? opciones : [];
+    select.innerHTML = listaOpciones.map(function(opcion) {
+      return '<option value="' + escaparHtmlCliente(opcion.value) + '">' + escaparHtmlCliente(opcion.label) + '</option>';
+    }).join('');
+
+    const valorNormalizado = normalizarTextoCliente(valorActual).toUpperCase();
+    const existe = listaOpciones.some(function(opcion) {
+      return normalizarTextoCliente(opcion.value).toUpperCase() === valorNormalizado;
+    });
+    const valorSeleccionado = existe
+      ? valorActual
+      : (listaOpciones.length ? listaOpciones[0].value : '');
+
+    select.value = valorSeleccionado;
+    sincronizarEstadoFiltrosResumen();
+  }
+
+  function obtenerOpcionesResumen(base, extractor) {
+    const listadoBase = Array.isArray(base) ? base : [];
+    const fn = typeof extractor === 'function' ? extractor : function() { return ''; };
+    const mapa = {};
+
+    listadoBase.forEach(function(item) {
+      const valor = normalizarTextoCliente(fn(item));
+      const clave = valor.toUpperCase();
+      if (!valor || valor === '-' || mapa[clave]) {
+        return;
+      }
+      mapa[clave] = valor;
+    });
+
+    return Object.keys(mapa).map(function(clave) {
+      return mapa[clave];
+    }).sort(function(a, b) {
+      return a.localeCompare(b, 'es', { sensitivity: 'base', numeric: true });
+    });
+  }
+
+  function sincronizarEstadoFiltrosResumen() {
+    estadoUI.filtroOrigenResumen = document.getElementById('filtroOrigenResumen')
+      ? document.getElementById('filtroOrigenResumen').value
+      : 'TODOS';
+    estadoUI.filtroCargaResumen = document.getElementById('filtroCargaResumen')
+      ? document.getElementById('filtroCargaResumen').value
+      : 'TODAS';
+    estadoUI.filtroCarteraResumen = document.getElementById('filtroCarteraResumen')
+      ? document.getElementById('filtroCarteraResumen').value
+      : 'TODAS';
+    estadoUI.filtroTarifaResumen = document.getElementById('filtroTarifaResumen')
+      ? document.getElementById('filtroTarifaResumen').value
+      : 'TODAS';
+  }
+
+  function actualizarFiltrosSecundariosResumen() {
+    sincronizarEstadoFiltrosResumen();
+    estadoUI.detalleResumenEditando = false;
+    estadoUI.alertaDetallePendiente = null;
+    ocultarAlerta(document.getElementById('detalleCrudGlobalAlert'));
+
+    const listado = obtenerListadoResumenFiltrado();
+    const periodoTexto = document.getElementById('periodoActivoDisplay').innerText || 'Sin datos';
+    renderListadoSuministros(listado, {
+      periodoLabel: periodoTexto,
+      totalMes: estadoUI.suministrosResumen.length,
+      filtro: document.getElementById('buscadorSuministro').value,
+      estadoFiltro: estadoUI.filtroEstadoResumen
+    });
+
+    sincronizarDetalleVisibleResumen(listado);
+  }
+
+  function limpiarFiltrosListadoResumen() {
+    estadoUI.filtroEstadoResumen = 'TODOS';
+    estadoUI.filtroOrigenResumen = 'TODOS';
+    estadoUI.filtroCargaResumen = 'TODAS';
+    estadoUI.filtroCarteraResumen = 'TODAS';
+    estadoUI.filtroTarifaResumen = 'TODAS';
+    renderFiltrosEstadoResumen();
+    renderFiltrosSecundariosResumen();
+    actualizarFiltrosSecundariosResumen();
+  }
+
+  function cambiarFiltroEstadoResumen(filtro) {
+    estadoUI.filtroEstadoResumen = filtro || 'TODOS';
+    estadoUI.detalleResumenEditando = false;
+    estadoUI.alertaDetallePendiente = null;
+    ocultarAlerta(document.getElementById('detalleCrudGlobalAlert'));
+    renderFiltrosEstadoResumen();
+
+    const listado = obtenerListadoResumenFiltrado();
+    const periodoTexto = document.getElementById('periodoActivoDisplay').innerText || 'Sin datos';
+    renderListadoSuministros(listado, {
+      periodoLabel: periodoTexto,
+      totalMes: estadoUI.suministrosResumen.length,
+      filtro: document.getElementById('buscadorSuministro').value,
+      estadoFiltro: estadoUI.filtroEstadoResumen
+    });
+
+    sincronizarDetalleVisibleResumen(listado);
+  }
+
+  function alternarPantallaCompletaListado() {
+    aplicarModoPantallaCompletaListado(!estadoUI.listadoPadronExpandido);
+  }
+
+  function aplicarModoPantallaCompletaListado(expandido) {
+    estadoUI.listadoPadronExpandido = Boolean(expandido);
+
+    const grid = document.getElementById('panelResumenGrid');
+    if (grid) {
+      grid.classList.toggle('padron-fullscreen-active', estadoUI.listadoPadronExpandido);
+    }
+
+    actualizarBotonPantallaCompletaListado();
+  }
+
+  function actualizarBotonPantallaCompletaListado() {
+    const boton = document.getElementById('btnPantallaCompletaPadron');
+    if (!boton) {
+      return;
+    }
+
+    if (estadoUI.listadoPadronExpandido) {
+      boton.innerHTML = '<i class="fas fa-compress me-1"></i> Salir de pantalla completa';
+      boton.classList.remove('btn-outline-primary');
+      boton.classList.add('btn-primary');
+      return;
+    }
+
+    boton.innerHTML = '<i class="fas fa-expand me-1"></i> Pantalla completa';
+    boton.classList.remove('btn-primary');
+    boton.classList.add('btn-outline-primary');
+  }
+
+  function renderListadoSuministros(items, opciones) {
+    const container = document.getElementById('listadoSuministrosContainer');
+    const meta = document.getElementById('listadoSuministrosMeta');
+    const listado = Array.isArray(items) ? items : [];
+    const listadoVisible = listado.slice(0, LIMITE_LISTADO_PADRON);
+    const config = opciones || {};
+    const totalMes = Number(config.totalMes || 0);
+    const periodoLabel = config.periodoLabel || 'Sin datos';
+    const filtro = normalizarTextoCliente(config.filtro);
+    const estadoFiltro = normalizarTextoCliente(config.estadoFiltro).toUpperCase() || 'TODOS';
+    const etiquetaFiltro = estadoFiltro === 'PENDIENTE'
+      ? 'Pendientes'
+      : (estadoFiltro === 'REALIZADO'
+        ? 'Realizados'
+        : (estadoFiltro === 'LEIDO SIN PARAMETROS'
+          ? 'Leídos sin Parámetros'
+          : (estadoFiltro === 'CORTADO'
+            ? 'Cortados'
+            : (estadoFiltro === 'RETIRADO' ? 'Retirados' : 'Todos'))));
+    const descripcionFiltros = construirDescripcionFiltrosListado();
+
+    estadoUI.listadoResumenActual = listadoVisible.slice();
+
+    if (filtro) {
+      meta.innerText = construirTextoMetaListado(listadoVisible.length, listado.length, totalMes, periodoLabel, etiquetaFiltro, true);
+    } else if (estadoFiltro !== 'TODOS') {
+      meta.innerText = construirTextoMetaListado(listadoVisible.length, listado.length, totalMes, periodoLabel, etiquetaFiltro, false);
+    } else {
+      meta.innerText = construirTextoMetaListado(listadoVisible.length, listado.length, totalMes, periodoLabel, etiquetaFiltro, false);
+    }
+
+    if (descripcionFiltros) {
+      meta.innerText += ' Filtros: ' + descripcionFiltros + '.';
+    }
+
+    if (!listado.length) {
+      container.innerHTML = estadoFiltro === 'TODOS'
+        ? '<div class="text-muted small">No hay suministros para mostrar en este período.</div>'
+        : '<div class="text-muted small">No hay suministros para mostrar con el filtro seleccionado.</div>';
+      return;
+    }
+
+    const mostrarPrevias = listadoVisible.some(function(item) {
+      return Boolean(item && item.carga && (item.carga.esArchivoRg || item.carga.esAlphaset));
+    });
+    const columnasBase = [
+      { key: 'suministro', label: 'Suministro' },
+      { key: 'origen', label: 'Origen' },
+      { key: 'cartera', label: 'Cartera' },
+      { key: 'nombre', label: 'Nombre' },
+      { key: 'direccion', label: 'Dirección' },
+      { key: 'marca', label: 'Marca' },
+      { key: 'modelo', label: 'Modelo' },
+      { key: 'serieFab', label: 'SerieFab' },
+      { key: 'factor', label: 'Factor' },
+      { key: 'tarifa', label: 'Tarifa' }
+    ];
+    const columnasParametros = mostrarPrevias
+      ? [
+        { key: 'EAT', label: 'PREV EAT', scope: 'previa' },
+        { key: 'EAHP', label: 'PREV EAHP', scope: 'previa' },
+        { key: 'EAFP', label: 'PREV EAFP', scope: 'previa' },
+        { key: 'ER', label: 'PREV ER', scope: 'previa' },
+        { key: 'PHP', label: 'PREV PHP', scope: 'previa' },
+        { key: 'PFP', label: 'PREV PFP', scope: 'previa' },
+        { key: 'EAT', label: 'EAT', scope: 'actual' },
+        { key: 'EAHP', label: 'EAHP', scope: 'actual' },
+        { key: 'EAFP', label: 'EAFP', scope: 'actual' },
+        { key: 'ER', label: 'ER', scope: 'actual' },
+        { key: 'PHP', label: 'PHP', scope: 'actual' },
+        { key: 'PFP', label: 'PFP', scope: 'actual' }
+      ]
+      : [
+        { key: 'EAT', label: 'EAT', scope: 'actual' },
+        { key: 'EAHP', label: 'EAHP', scope: 'actual' },
+        { key: 'EAFP', label: 'EAFP', scope: 'actual' },
+        { key: 'ER', label: 'ER', scope: 'actual' },
+        { key: 'PHP', label: 'PHP', scope: 'actual' },
+        { key: 'PFP', label: 'PFP', scope: 'actual' }
+      ];
+    const cabecera = columnasBase.concat(columnasParametros).map(function(columna) {
+      return '<th class="text-nowrap small">' + columna.label + '</th>';
+    }).join('');
+
+    const filas = listadoVisible.map(function(item, index) {
+      const resumen = item.resumenListado || {};
+      const carga = item.carga || {};
+      const previas = carga.previas || {};
+      const celdasBase = columnasBase.map(function(columna) {
+        if (columna.key === 'origen') {
+          return '<td class="small text-nowrap">' + formatearOrigenLecturaCorto(resumen[columna.key]) + '</td>';
+        }
+
+        const valor = resumen[columna.key];
+        return '<td class="small text-nowrap">' + (valor && valor !== '-' ? valor : '-') + '</td>';
+      }).join('');
+      const celdasParametros = columnasParametros.map(function(columna) {
+        const origen = columna.scope === 'previa'
+          ? ((carga.esArchivoRg || carga.esAlphaset) ? previas : {})
+          : carga;
+        const valor = origen ? origen[columna.key] : '';
+        return '<td class="small text-nowrap">' + (valor === '' || valor === null || valor === undefined || valor === '-' ? '-' : valor) + '</td>';
+      }).join('');
+      const rowClass = item.key === estadoUI.detalleResumenActualKey ? 'table-active' : '';
+
+      return (
+        '<tr class="' + rowClass + '">' +
+          '<td class="small text-nowrap"><button class="btn btn-outline-primary btn-sm" onclick="seleccionarSuministroDesdeListado(' + index + ')">Ver</button></td>' +
+          '<td class="small text-nowrap">' + renderBadgeEstado(item.estado) + '</td>' +
+          '<td class="small text-nowrap">' + renderBadgeCarga(item.carga) + '</td>' +
+          celdasBase +
+          celdasParametros +
+        '</tr>'
+      );
+    }).join('');
+
+    container.innerHTML =
+      '<div class="table-responsive padron-list-scroll">' +
+        '<table class="table table-sm table-hover align-middle mb-0">' +
+          '<thead>' +
+            '<tr>' +
+              '<th class="text-nowrap small">Accion</th>' +
+              '<th class="text-nowrap small">Estado</th>' +
+              '<th class="text-nowrap small">Carga</th>' +
+              cabecera +
+            '</tr>' +
+          '</thead>' +
+          '<tbody>' + filas + '</tbody>' +
+        '</table>' +
+      '</div>';
+  }
+
+  function construirTextoMetaListado(visible, totalFiltrado, totalMes, periodoLabel, etiquetaFiltro, hayBusqueda) {
+    const limitado = totalFiltrado > visible;
+    const sufijoLimite = limitado
+      ? ' Se muestran solo los primeros ' + visible + '.'
+      : '';
+
+    if (hayBusqueda) {
+      return 'Mostrando ' + visible + ' de ' + totalFiltrado + ' suministros del período ' + periodoLabel + ' en ' + etiquetaFiltro + '.' + sufijoLimite;
+    }
+
+    if (etiquetaFiltro !== 'Todos') {
+      return 'Mostrando ' + visible + ' de ' + totalFiltrado + ' suministros ' + etiquetaFiltro.toLowerCase() + ' del período ' + periodoLabel + '.' + sufijoLimite;
+    }
+
+    return 'Mostrando ' + visible + ' de ' + totalMes + ' suministros del período ' + periodoLabel + '.' + sufijoLimite;
+  }
+
+  function construirDescripcionFiltrosListado() {
+    const partes = [];
+    const origen = formatearOrigenLecturaVisible(estadoUI.filtroOrigenResumen);
+    const carga = formatearFiltroCargaVisible(estadoUI.filtroCargaResumen);
+    const cartera = normalizarTextoCliente(estadoUI.filtroCarteraResumen);
+    const tarifa = normalizarTextoCliente(estadoUI.filtroTarifaResumen);
+
+    if (origen) {
+      partes.push('Origen ' + origen);
+    }
+    if (carga) {
+      partes.push('Carga ' + carga);
+    }
+    if (cartera && cartera.toUpperCase() !== 'TODAS') {
+      partes.push('Cartera ' + cartera);
+    }
+    if (tarifa && tarifa.toUpperCase() !== 'TODAS') {
+      partes.push('Tarifa ' + tarifa);
+    }
+
+    return partes.join(' | ');
+  }
+
+  function formatearFiltroCargaVisible(valor) {
+    const texto = normalizarTextoCliente(valor).toUpperCase();
+    if (texto === 'CON_CARGA') {
+      return 'Con carga';
+    }
+    if (texto === 'LEIDO SIN PARAMETROS') {
+      return 'Leído sin Parámetros';
+    }
+    if (texto === 'SIN_CARGA') {
+      return 'Sin carga';
+    }
+    return '';
+  }
+
+  function sincronizarDetalleVisibleResumen(listado) {
+    const detalleVisible = (Array.isArray(listado) ? listado : []).some(function(item) {
+      return item.key === estadoUI.detalleResumenActualKey;
+    });
+
+    if (!detalleVisible) {
+      estadoUI.detalleResumenActualKey = '';
+      document.getElementById('detalleSuministroMeta').innerText = 'Seleccione un suministro del listado o use el buscador.';
+      document.getElementById('detalleSuministroContainer').innerHTML = 'Sin resultados aún.';
+      actualizarCabeceraDetalleSuministro('', '');
+    }
+  }
+
+  function seleccionarSuministroDesdeListado(index) {
+    const item = estadoUI.listadoResumenActual[index];
+    if (!item) {
+      return;
+    }
+
+    estadoUI.detalleResumenActualKey = item.key;
+    estadoUI.detalleResumenEditando = false;
+    estadoUI.alertaDetallePendiente = null;
+    document.getElementById('buscadorSuministro').value = item.suministro || '';
+    document.getElementById('detalleSuministroMeta').innerText =
+      'Detalle del suministro seleccionado del período ' + (item.periodoLabel || item.periodo || '-');
+    actualizarCabeceraDetalleSuministro(
+      item.suministro || '',
+      (item.carga && item.carga.origenLectura) || (item.resumenListado && item.resumenListado.origen) || ''
+    );
+    ocultarAlerta(document.getElementById('detalleCrudGlobalAlert'));
+    renderDetalleSuministro([item]);
+    renderListadoSuministros(estadoUI.listadoResumenActual, {
+      periodoLabel: document.getElementById('periodoActivoDisplay').innerText || 'Sin datos',
+      totalMes: estadoUI.suministrosResumen.length,
+      filtro: document.getElementById('buscadorSuministro').value,
+      estadoFiltro: estadoUI.filtroEstadoResumen
+    });
+  }
+
+  function obtenerDetalleResumenSeleccionado() {
+    if (!estadoUI.detalleResumenActualKey) {
+      return null;
+    }
+
+    return estadoUI.suministrosResumen.find(function(item) {
+      return item.key === estadoUI.detalleResumenActualKey;
+    }) || null;
+  }
+
+  function activarEdicionDetalle() {
+    const item = obtenerDetalleResumenSeleccionado();
+    if (!item) {
+      return;
+    }
+
+    estadoUI.detalleResumenEditando = true;
+    estadoUI.alertaDetallePendiente = null;
+    ocultarAlerta(document.getElementById('detalleCrudGlobalAlert'));
+    renderDetalleSuministro([item]);
+  }
+
+  function cancelarEdicionDetalle() {
+    const item = obtenerDetalleResumenSeleccionado();
+    estadoUI.detalleResumenEditando = false;
+    estadoUI.alertaDetallePendiente = null;
+    ocultarAlerta(document.getElementById('detalleCrudGlobalAlert'));
+
+    if (!item) {
+      document.getElementById('detalleSuministroContainer').innerHTML = 'Sin resultados aún.';
+      actualizarCabeceraDetalleSuministro('', '');
+      return;
+    }
+
+    renderDetalleSuministro([item]);
+  }
+
+  function guardarEdicionDetalle() {
+    const item = obtenerDetalleResumenSeleccionado();
+    const alertBox = document.getElementById('detalleCrudGlobalAlert');
+    const boton = document.getElementById('btnGuardarEdicionDetalle');
+
+    if (!item) {
+      mostrarAlerta(alertBox, 'danger', 'Seleccione un suministro antes de guardar.');
+      return;
+    }
+
+    const payload = construirPayloadEdicionDetalle(item);
+
+    if (boton) {
+      boton.disabled = true;
+      boton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+    }
+    mostrarAlerta(alertBox, 'info', 'Guardando los cambios del suministro seleccionado...');
+
+    google.script.run
+      .withSuccessHandler(function(respuesta) {
+        estadoUI.detalleResumenEditando = false;
+        document.getElementById('buscadorSuministro').value = respuesta.suministro || item.suministro || '';
+        estadoUI.alertaDetallePendiente = {
+          tipo: 'success',
+          mensaje: (respuesta.mensaje || 'El suministro se actualizó correctamente.') +
+            ' Estado: ' + (respuesta.estado || '-') +
+            '. Período: ' + (respuesta.periodoLabel || respuesta.periodo || item.periodoLabel || item.periodo || '-') + '.'
+        };
+        actualizarResumen(true);
+      })
+      .withFailureHandler(function(error) {
+        mostrarAlerta(alertBox, 'danger', error.message || 'No se pudo guardar la edicion del suministro.');
+        if (boton) {
+          boton.disabled = false;
+          boton.innerHTML = 'Guardar';
+        }
+      })
+      .actualizarSuministroDesdePlataforma(payload);
+  }
+
+  function marcarEstadoLecturaDetalle(estadoLectura) {
+    const item = obtenerDetalleResumenSeleccionado();
+    const alertBox = document.getElementById('detalleCrudGlobalAlert');
+    const estadoNormalizado = normalizarTextoCliente(estadoLectura).toUpperCase();
+
+    if (!item) {
+      mostrarAlerta(alertBox, 'danger', 'Seleccione un suministro antes de actualizar su estado.');
+      return;
+    }
+
+    if (estadoNormalizado !== 'CORTADO' && estadoNormalizado !== 'RETIRADO') {
+      mostrarAlerta(alertBox, 'danger', 'Seleccione un estado válido: Cortado o Retirado.');
+      return;
+    }
+
+    if (!window.confirm('¿Desea marcar el suministro ' + (item.suministro || '-') + ' como ' + estadoNormalizado + '?')) {
+      return;
+    }
+
+    mostrarAlerta(alertBox, 'info', 'Actualizando el estado de lectura del suministro seleccionado...');
+
+    google.script.run
+      .withSuccessHandler(function(respuesta) {
+        estadoUI.detalleResumenEditando = false;
+        document.getElementById('buscadorSuministro').value = respuesta.suministro || item.suministro || '';
+        estadoUI.alertaDetallePendiente = {
+          tipo: 'success',
+          mensaje: (respuesta.mensaje || 'Estado de lectura actualizado correctamente.') +
+            ' Estado de lectura: ' + (respuesta.estadoLectura || estadoNormalizado) +
+            '. Estado: ' + (respuesta.estado || '-') +
+            '. Período: ' + (respuesta.periodoLabel || respuesta.periodo || item.periodoLabel || item.periodo || '-') + '.'
+        };
+        actualizarResumen(true);
+      })
+      .withFailureHandler(function(error) {
+        mostrarAlerta(alertBox, 'danger', error.message || 'No se pudo actualizar el estado de lectura.');
+      })
+      .marcarEstadoLecturaSuministro({
+        suministro: item.suministro,
+        periodo: item.periodo,
+        estadoLectura: estadoNormalizado
+      });
+  }
+
+  function construirPayloadEdicionDetalle(item) {
+    const payload = {
+      suministro: item.suministro,
+      periodo: item.periodo,
+      origenLectura: document.getElementById('detalleOrigenLectura').value,
+      observacion: document.getElementById('detalleCampoOBS').value
+    };
+
+    ['EAT', 'EAHP', 'EAFP', 'ER', 'PHP', 'PFP'].forEach(function(clave) {
+      const input = document.getElementById('detalleCampo' + clave);
+      payload[clave] = input ? input.value : '';
+    });
+
+    ['EAT', 'EAHP', 'EAFP', 'ER', 'PHP', 'PFP'].forEach(function(clave) {
+      const input = document.getElementById('detalleCampoPrev' + clave);
+      payload['LEC_ANT_' + clave] = input ? input.value : '';
+    });
+
+    return payload;
+  }
+
+  function cargarCuadrillas() {
+    google.script.run
+      .withSuccessHandler(function(cuadrillas) {
+        estadoUI.cuadrillas = Array.isArray(cuadrillas) ? cuadrillas : [];
+        renderCuadrillas();
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('quadrillasContainer').innerHTML =
+          '<div class="alert alert-warning mb-0">No se pudo cargar la configuración de cuadrillas. ' +
+          (error.message || '') +
+          '</div>';
+      })
+      .listarCuadrillas();
+  }
+
+  function renderCuadrillas() {
+    const container = document.getElementById('quadrillasContainer');
+
+    if (!estadoUI.cuadrillas.length) {
+      container.innerHTML = '<div class="text-muted small">No hay cuadrillas configuradas.</div>';
+      return;
+    }
+
+    container.innerHTML = estadoUI.cuadrillas.map(function(cuadrilla) {
+      const disabledProcesar = cuadrilla.disponible ? '' : 'disabled';
+      const badgeClass = cuadrilla.disponible ? 'text-success' : 'text-danger';
+      const badgeText = cuadrilla.disponible ? cuadrilla.folderDisplayName : 'Carpeta no disponible';
+
+      return (
+        '<div class="quadrilla-card">' +
+          '<div class="fw-bold mb-1">' + cuadrilla.label + '</div>' +
+          '<div class="small ' + badgeClass + ' mb-3">' + badgeText + '</div>' +
+          '<div class="d-grid gap-2">' +
+            '<button class="btn btn-outline-primary btn-sm w-100" data-cuadrilla-key="' + cuadrilla.key + '" onclick="ejecutarMotorLecturas(\'' + cuadrilla.key + '\')" ' + disabledProcesar + '>' +
+              'Procesar' +
+            '</button>' +
+            '<button class="btn btn-outline-success btn-sm w-100" data-cuadrilla-download-key="' + cuadrilla.key + '" onclick="descargarSinCargaCuadrilla(\'' + cuadrilla.key + '\')">' +
+              'Descargar sin Parámetros' +
+            '</button>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  function registrarCarga(resultado) {
+    estadoUI.historialCarga.unshift({
+      archivo: resultado.archivo,
+      accion: resultado.accion || 'carga',
+      periodo: resultado.periodo,
+      periodoSeleccionado: resultado.periodoSeleccionado || resultado.periodo,
+      periodoDetectado: resultado.periodoDetectado || resultado.periodo,
+      carpeta: resultado.carpeta || null,
+      registros: resultado.registros,
+      timestamp: resultado.timestamp,
+      mensaje: resultado.mensaje,
+      usuario: resultado.usuario || ''
+    });
+    estadoUI.historialCarga = estadoUI.historialCarga.slice(0, 10);
+    renderUploadLog();
+  }
+
+  function renderUploadLog() {
+    const container = document.getElementById('uploadLogContainer');
+    if (!container) {
+      return;
+    }
+
+    if (!estadoUI.historialCarga.length) {
+      container.innerHTML = '<div class="text-muted small">Aún no se registran cargas de padrón en esta sesión.</div>';
+      return;
+    }
+
+    container.innerHTML = estadoUI.historialCarga.map(function(item) {
+      const carpetaTexto = item.carpeta && item.carpeta.nombre
+        ? 'Carpeta: ' + item.carpeta.nombre
+        : 'Carpeta: -';
+      const periodoTexto = 'Mes cargado: ' + (item.periodoSeleccionado || item.periodo || '-');
+      const periodoDetectadoTexto = 'Período detectado: ' + (item.periodoDetectado || '-');
+      const operacionTexto = item.accion === 'borrado' ? 'Operación: Borrado de padrón' : 'Operación: Carga de padrón';
+      const usuarioTexto = item.usuario ? 'Usuario: ' + item.usuario : 'Usuario: -';
+
+      return (
+        '<div class="log-entry py-3">' +
+          '<div class="d-flex justify-content-between align-items-start gap-3">' +
+            '<div>' +
+              '<div class="fw-bold">' + item.archivo + '</div>' +
+              '<div class="small text-muted">' + periodoTexto + ' | Registros: ' + item.registros + '</div>' +
+              '<div class="small text-muted">' + operacionTexto + ' | ' + usuarioTexto + '</div>' +
+              '<div class="small text-muted">' + carpetaTexto + '</div>' +
+              '<div class="small text-muted">' + periodoDetectadoTexto + '</div>' +
+              '<div class="small text-muted">' + item.mensaje + '</div>' +
+            '</div>' +
+            '<div class="small text-muted text-end">' + item.timestamp + '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  function registrarProceso(resultado, cuadrillaKey) {
+    estadoUI.historialProceso.unshift({
+      scope: cuadrillaKey ? obtenerEtiquetaCuadrilla(cuadrillaKey) : 'Todas las cuadrillas',
+      periodo: resultado.periodo,
+      timestamp: resultado.timestamp,
+      resumen: resultado.resumen || {},
+      cuadrillas: resultado.cuadrillas || []
+    });
+    estadoUI.historialProceso = estadoUI.historialProceso.slice(0, 10);
+    renderProcessLog();
+  }
+
+  function renderProcessLog() {
+    const container = document.getElementById('processLogContainer');
+    if (!container) {
+      return;
+    }
+
+    if (!estadoUI.historialProceso.length) {
+      container.innerHTML = '<div class="text-muted small">Aún no se registran procesos de lectura en esta sesión.</div>';
+      return;
+    }
+
+    container.innerHTML = estadoUI.historialProceso.map(function(item) {
+      const detalleCuadrillas = item.cuadrillas.map(function(cuadrilla) {
+        const detalles = cuadrilla.detalles.map(function(detalle) {
+          return '<li>' + detalle + '</li>';
+        }).join('');
+
+        return (
+          '<div class="mt-3 pt-3 border-top">' +
+            '<div class="fw-bold">' + cuadrilla.label + '</div>' +
+            '<div class="small text-muted">Encontrados: ' + cuadrilla.archivosEncontrados +
+              ' | Procesados: ' + cuadrilla.procesados +
+              ' | Leídos sin Parámetros: ' + (cuadrilla.leidosSinCarga || 0) +
+              ' | Omitidos: ' + cuadrilla.omitidos +
+              ' | Errores: ' + cuadrilla.errores + '</div>' +
+            '<ul class="small mb-0 mt-2">' + detalles + '</ul>' +
+          '</div>'
+        );
+      }).join('');
+
+      return (
+        '<div class="log-entry py-3">' +
+          '<div class="d-flex justify-content-between align-items-start gap-3">' +
+            '<div>' +
+              '<div class="fw-bold">' + item.scope + '</div>' +
+              '<div class="small text-muted">Período: ' + item.periodo + '</div>' +
+              '<div class="small text-muted">Encontrados: ' + (item.resumen.archivosEncontrados || 0) +
+                ' | Procesados: ' + (item.resumen.procesados || 0) +
+                ' | Leídos sin Parámetros: ' + (item.resumen.leidosSinCarga || 0) +
+                ' | Omitidos: ' + (item.resumen.omitidos || 0) +
+                ' | Errores: ' + (item.resumen.errores || 0) + '</div>' +
+            '</div>' +
+            '<div class="small text-muted text-end">' + item.timestamp + '</div>' +
+          '</div>' +
+          detalleCuadrillas +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  function obtenerEtiquetaCuadrilla(cuadrillaKey) {
+    const encontrada = estadoUI.cuadrillas.find(function(cuadrilla) {
+      return cuadrilla.key === cuadrillaKey;
+    });
+    return encontrada ? encontrada.label : 'Cuadrilla';
+  }
+
+  function restaurarBotonProcesamiento(cuadrillaKey) {
+    if (!cuadrillaKey) {
+      const botonTodas = document.getElementById('btnProcesarTodas');
+      if (botonTodas) {
+        botonTodas.disabled = false;
+        botonTodas.innerHTML = 'Procesar todas';
+      }
+      return;
+    }
+
+    const boton = document.querySelector('[data-cuadrilla-key="' + cuadrillaKey + '"]');
+    if (boton) {
+      boton.disabled = false;
+      boton.innerHTML = 'Procesar';
+    }
+  }
+
+  function restaurarBotonDescargaSinCarga(cuadrillaKey) {
+    const boton = document.querySelector('[data-cuadrilla-download-key="' + cuadrillaKey + '"]');
+    if (boton) {
+      boton.disabled = false;
+      boton.innerHTML = 'Descargar sin Parámetros';
+    }
+  }
+
+  function mostrarAlerta(elemento, tipo, mensaje) {
+    elemento.className = 'alert alert-' + tipo + ' mt-3 d-block mb-0';
+    elemento.innerHTML = mensaje;
+  }
+
+  function ocultarAlerta(elemento) {
+    if (!elemento) {
+      return;
+    }
+
+    elemento.className = 'alert d-none mb-0';
+    elemento.innerHTML = '';
+  }
+
+  function actualizarCabeceraDetalleSuministro(suministro, origenLectura) {
+    const badgeNumero = document.getElementById('detalleSuministroNumero');
+    const badgeOrigen = document.getElementById('detalleSuministroOrigen');
+    if (!badgeNumero || !badgeOrigen) {
+      return;
+    }
+
+    const valor = normalizarTextoCliente(suministro);
+    const labelNumero = badgeNumero.querySelector('span');
+    const valorOrigen = formatearOrigenLecturaVisible(origenLectura);
+    const labelOrigen = badgeOrigen.querySelector('span');
+
+    if (!valor) {
+      badgeNumero.classList.add('d-none');
+      badgeOrigen.classList.add('d-none');
+      if (labelNumero) {
+        labelNumero.innerText = '-';
+      }
+      if (labelOrigen) {
+        labelOrigen.innerText = '-';
+      }
+      return;
+    }
+
+    if (labelNumero) {
+      labelNumero.innerText = valor;
+    }
+    badgeNumero.classList.remove('d-none');
+
+    if (valorOrigen) {
+      if (labelOrigen) {
+        labelOrigen.innerText = valorOrigen;
+      }
+      badgeOrigen.classList.remove('d-none');
+    } else {
+      badgeOrigen.classList.add('d-none');
+      if (labelOrigen) {
+        labelOrigen.innerText = '-';
+      }
+    }
+  }
+
+  function aplicarAlertaDetallePendiente() {
+    if (!estadoUI.alertaDetallePendiente) {
+      return;
+    }
+
+    mostrarAlerta(
+      document.getElementById('detalleCrudGlobalAlert'),
+      estadoUI.alertaDetallePendiente.tipo,
+      estadoUI.alertaDetallePendiente.mensaje
+    );
+    estadoUI.alertaDetallePendiente = null;
+  }
+
+  function normalizarTextoCliente(valor) {
+    return String(valor == null ? '' : valor).trim();
+  }
+
+  function formatearOrigenLecturaVisible(valor) {
+    const texto = normalizarTextoCliente(valor).toUpperCase();
+    if (texto === 'TELEMETRIA') {
+      return 'Telemetría';
+    }
+    if (texto === 'CAMPO') {
+      return 'Campo';
+    }
+    return '';
+  }
+
+  function esEstadoFinalizadoCliente(valor) {
+    const texto = normalizarTextoCliente(valor).toUpperCase();
+    return texto === 'REALIZADO' || texto === 'CORTADO' || texto === 'RETIRADO';
+  }
+
+  function formatearOrigenLecturaCorto(valor) {
+    const texto = normalizarTextoCliente(valor).toUpperCase();
+    if (texto === 'TELEMETRIA') {
+      return 'TLM';
+    }
+    if (texto === 'CAMPO') {
+      return 'Campo';
+    }
+    return '-';
+  }
+
+  function escaparHtmlCliente(valor) {
+    return normalizarTextoCliente(valor)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function normalizarSuministroCliente(valor) {
+    const texto = normalizarTextoCliente(valor);
+    const soloDigitos = texto.replace(/\D/g, '').replace(/^0+/, '');
+    return soloDigitos || texto.toUpperCase();
+  }
+
+  function renderBadgeEstado(estado) {
+    const valor = normalizarTextoCliente(estado).toUpperCase();
+    if (valor === 'RETIRADO') {
+      return '<span class="status-chip removed">Retirado</span>';
+    }
+
+    if (valor === 'CORTADO') {
+      return '<span class="status-chip blocked">Cortado</span>';
+    }
+
+    if (valor === 'REALIZADO') {
+      return '<span class="status-chip done">Realizado</span>';
+    }
+
+    if (valor === 'LEIDO SIN PARAMETROS') {
+      return '<span class="status-chip neutral">Leído sin Parámetros</span>';
+    }
+
+    if (valor === 'PENDIENTE') {
+      return '<span class="status-chip pending">Pendiente</span>';
+    }
+
+    return '<span class="status-chip neutral">' + (estado || 'Sin estado') + '</span>';
+  }
+
+  function renderBadgeCarga(carga) {
+    const data = carga || {};
+    if (data.tieneCarga) {
+      return '<span class="status-chip done">Con carga</span>';
+    }
+
+    if (data.sinCargaLeida) {
+      return '<span class="status-chip neutral">Leído sin Parámetros</span>';
+    }
+
+    return '<span class="status-chip neutral">Sin carga</span>';
+  }
+
+  function renderCargaListado(carga) {
+    const data = carga || {};
+    if (data.sinCargaLeida && !data.tieneCarga) {
+      return '<div class="small text-muted">Leído sin Parámetros</div>';
+    }
+    const claves = ['EAT', 'EAHP', 'EAFP', 'ER', 'PHP', 'PFP'];
+
+    return '<div class="small">' + claves.map(function(clave) {
+      return (
+        '<div><strong>' + clave + ':</strong> ' + (data[clave] || '-') + '</div>'
+      );
+    }).join('') + '</div>';
+  }
+
+  function renderQuickField(label, value) {
+    return (
+      '<div class="quick-field">' +
+        '<span class="detail-label">' + label + '</span>' +
+        '<span class="detail-value">' + (value || '-') + '</span>' +
+      '</div>'
+    );
+  }
+
+  function cargarOpcionesPeriodoCarga() {
+    const select = document.getElementById('periodoCargaPadron');
+    if (!select) {
+      return;
+    }
+
+    const hoy = new Date();
+    const opciones = [];
+
+    for (let delta = -12; delta <= 6; delta++) {
+      const fecha = new Date(hoy.getFullYear(), hoy.getMonth() + delta, 1);
+      const year = fecha.getFullYear();
+      const month = String(fecha.getMonth() + 1).padStart(2, '0');
+      const value = year + month;
+      const label = year + '-' + month;
+      const selected = delta === 0 ? ' selected' : '';
+      opciones.push('<option value="' + value + '"' + selected + '>' + label + '</option>');
+    }
+
+    select.innerHTML = opciones.join('');
+  }
+</script>
+
+
